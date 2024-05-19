@@ -1,4 +1,4 @@
-module example.com/gitpulse-tracker
+module github.com/xhermitx/gitpulse-tracker
 
 go 1.22.2
 

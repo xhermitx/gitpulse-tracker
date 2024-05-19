@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	api "example.com/gitpulse-tracker/API"
 	"github.com/joho/godotenv"
+	api "github.com/xhermitx/gitpulse-tracker/API"
 )
 
 func checkUserExists(username string) (bool, error) {
