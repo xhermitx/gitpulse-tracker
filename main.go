@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -14,73 +14,80 @@ import (
 	api "github.com/xhermitx/gitpulse-tracker/API"
 )
 
-func checkUserExists(username string) (bool, error) {
-	url := fmt.Sprintf("https://api.github.com/users/%s", username)
-
-	// Perform the GET request.
-	resp, err := http.Get(url)
-	if err != nil {
-		return false, err
+func getFileNames() ([]string, error) {
+	matches, _ := filepath.Glob("*.pdf")
+	if len(matches) == 0 {
+		return nil, errors.New("no files in the current directory")
 	}
-	defer resp.Body.Close()
-
-	// Check the HTTP status code to determine if the user exists.
-	if resp.StatusCode == http.StatusOK {
-		var body interface{}
-		decoder := json.NewDecoder(resp.Body)
-
-		if err = decoder.Decode(&body); err != nil {
-			log.Println(err)
-			return false, err
-		}
-
-		// CHECK IF THE ENTITY IS OF TYPE "USER"
-		return body.(map[string]interface{})["type"].(string) == "User", nil
-
-	} else if resp.StatusCode == http.StatusNotFound {
-		return false, nil
-	}
-
-	return false, fmt.Errorf("unexpected HTTP status: %s", resp.Status)
-
+	return matches, nil
 }
 
-func main() {
+func getUserName(fileName string) ([]string, error) {
 	// Replace 'resume.pdf' with the path to your PDF file
-	f, err := os.Open("resume.pdf")
+	f, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 	fmt.Println("NAME of the file: ", f.Name())
 
 	scanner := bufio.NewScanner(f)
 
-	var headerBuilder strings.Builder
+	var contentBuilder strings.Builder
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		// Write the line to the header string builder
-		headerBuilder.WriteString(line)
+		contentBuilder.WriteString(line)
 	}
 
-	content := headerBuilder.String()
+	content := contentBuilder.String()
 
 	pattern := regexp.MustCompile(`https://github\.com/[a-zA-Z0-9]+(\-[a-zA-Z0-9]*)*`)
 
-	userNames := make(map[string]bool)
+	uniqIDs := make(map[string]bool)
 
 	// Find and print all matches
 	matches := pattern.FindAllString(content, -1)
 	for _, match := range matches {
 		// fmt.Println("GitHub Profile:", match[19:])
-		userNames[match[19:]] = true
+		uniqIDs[match[19:]] = true
+	}
+
+	if len(uniqIDs) == 0 {
+		return nil, fmt.Errorf("no username found in file : %s", f.Name())
+	}
+
+	userIDs := make([]string, 0, len(uniqIDs))
+
+	for key := range uniqIDs {
+		userIDs = append(userIDs, key)
+	}
+
+	return userIDs, nil
+}
+
+func main() {
+
+	fileNames, err := getFileNames()
+	if err != nil {
+		log.Println(err)
+	}
+
+	var userIDs []string
+
+	for _, f := range fileNames {
+		if ID, err := getUserName(f); err != nil {
+			log.Println(err)
+		} else {
+			userIDs = append(userIDs, ID...)
+		}
 	}
 
 	var validUsers []string
 
-	for name := range userNames {
-		if exists, error := checkUserExists(name); error != nil {
+	for _, name := range userIDs {
+		if exists, error := api.CheckUserExists(name); error != nil {
 			log.Println(err)
 		} else if exists {
 			validUsers = append(validUsers, name)
