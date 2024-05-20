@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	api "github.com/xhermitx/gitpulse-tracker/API"
+	"github.com/xhermitx/gitpulse-tracker/API"
+	"github.com/xhermitx/gitpulse-tracker/models"
+	"github.com/xhermitx/gitpulse-tracker/utils"
 )
 
 func getFileNames() ([]string, error) {
@@ -23,13 +25,12 @@ func getFileNames() ([]string, error) {
 }
 
 func getUserName(fileName string) ([]string, error) {
-	// Replace 'resume.pdf' with the path to your PDF file
+
 	f, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	fmt.Println("NAME of the file: ", f.Name())
 
 	scanner := bufio.NewScanner(f)
 
@@ -37,7 +38,6 @@ func getUserName(fileName string) ([]string, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		// Write the line to the header string builder
 		contentBuilder.WriteString(line)
 	}
 
@@ -50,7 +50,6 @@ func getUserName(fileName string) ([]string, error) {
 	// Find and print all matches
 	matches := pattern.FindAllString(content, -1)
 	for _, match := range matches {
-		// fmt.Println("GitHub Profile:", match[19:])
 		uniqIDs[match[19:]] = true
 	}
 
@@ -69,6 +68,11 @@ func getUserName(fileName string) ([]string, error) {
 
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Panic("Error loading the environment variables")
+	}
+
 	fileNames, err := getFileNames()
 	if err != nil {
 		log.Println(err)
@@ -84,35 +88,18 @@ func main() {
 		}
 	}
 
-	var validUsers []string
+	// fmt.Println("\nUSER IDs EXTRACTED: ", userIDs)
 
-	for _, name := range userIDs {
-		if exists, error := api.CheckUserExists(name); error != nil {
+	var detailedList []models.GitResponse
+
+	for _, user := range userIDs {
+		if res, err := API.GetUserDetails(user); err != nil {
 			log.Println(err)
-		} else if exists {
-			validUsers = append(validUsers, name)
-		}
-	}
-
-	fmt.Println(validUsers)
-
-	userList := make(map[string]int)
-
-	err = godotenv.Load()
-	if err != nil {
-		log.Panic("Error loading the environment variables")
-	}
-
-	for _, user := range validUsers {
-		if contributions, err := api.GetContributions(user, os.Getenv("GITHUB_TOKEN")); err != nil {
-			log.Print(err)
 		} else {
-			userList[user] = contributions
+			detailedList = append(detailedList, res)
 		}
 	}
 
-	for key, val := range userList {
-		fmt.Printf("\nUSER : %s 	CONTRIBUTIONS : %d", key, val)
-	}
+	utils.Printer(detailedList)
 
 }
