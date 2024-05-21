@@ -76,20 +76,10 @@ func GetUserDetails(username string) (models.GitResponse, error) {
 	}
 
 	if len(gitResponse.Errors) > 0 {
-		fmt.Println("Errors occurred:", gitResponse.Errors)
+		return models.GitResponse{}, fmt.Errorf("error occured while fetching username: %v", gitResponse.Errors)
 	} else if gitResponse.Data.User.Typename != "User" {
-		return models.GitResponse{}, fmt.Errorf("invalid username")
+		return gitResponse, fmt.Errorf("username %s is not of type user", gitResponse.Data.User.Login)
 	}
 
 	return gitResponse, nil
-	// } else {
-	// 	fmt.Println("User:", gitResponse.Data.User.Login)
-	// 	fmt.Println("Total Contributions:", gitResponse.Data.User.ContributionsCollection.ContributionCalendar.TotalContributions)
-	// 	fmt.Println("Total Followers:", gitResponse.Data.User.Followers.TotalCount)
-	// 	if len(gitResponse.Data.User.Repositories.Nodes) > 0 {
-	// 		fmt.Println("Most Starred Repo:", gitResponse.Data.User.Repositories.Nodes[0].Name)
-	// 		fmt.Println("Stars Count:", gitResponse.Data.User.Repositories.Nodes[0].StargazerCount)
-	// 	}
-	// }
-	// return nil
 }
