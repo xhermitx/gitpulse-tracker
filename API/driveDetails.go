@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sync"
 
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -48,24 +49,31 @@ func GetDriveDetails() ([]string, error) {
 		return nil, err
 	}
 
+	var lock sync.Mutex
+	var wg sync.WaitGroup
 	var userIDs []string
-	// Print the names and IDs of the files
-	for _, i := range fileList.Files {
-		fmt.Printf("File Name: %s, File ID: %s\n", i.Name, i.Id)
-		file, err := getFileData(i.Id, driveService)
-		if err != nil {
-			return nil, err
-		}
-		res, err := getUsername(file)
-		if err != nil {
-			log.Print(err)
-		}
 
-		userIDs = append(userIDs, res...)
+	wg.Add(len(fileList.Files))
+	// Print the names and IDs of the files
+	for _, f := range fileList.Files {
+		go func(f *drive.File) {
+			defer wg.Done()
+			// fmt.Printf("File Name: %s, File ID: %s\n", i.Name, i.Id)
+			file, err := getFileData(f.Id, driveService)
+			if err != nil {
+				log.Print(err)
+			}
+			res, err := getUsername(file)
+			if err != nil {
+				log.Print(err)
+			}
+			lock.Lock()
+			userIDs = append(userIDs, res...)
+			lock.Unlock()
+		}(f)
 	}
 
-	fmt.Println(userIDs)
-
+	wg.Wait()
 	return userIDs, nil
 }
 
@@ -123,5 +131,4 @@ func getUsername(data []byte) ([]string, error) {
 	}
 
 	return userIDs, nil
-
 }

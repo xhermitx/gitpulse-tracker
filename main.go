@@ -24,8 +24,7 @@ func main() {
 			log.Print(err)
 		}
 		defer f.Close()
-
-		_, _ = fmt.Fprintln(f, "# PERFORMANCE WITH READING DRIVE DATA CONCURRENTLY READING PDFs AND FETCHING FROM GITHUB")
+		_, _ = fmt.Fprintln(f, "# PERFORMANCE WITH CONCURRENTLY READING DRIVE DATA, PDFs AND FETCHING FROM GITHUB")
 		_, _ = fmt.Fprintln(f, "TOTAL TIME TAKEN: ", time.Since(t).Seconds())
 	}()
 
