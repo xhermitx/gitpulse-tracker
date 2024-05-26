@@ -4,7 +4,7 @@
 // - protoc             v5.27.0
 // source: github.proto
 
-package github
+package gitfetch
 
 import (
 	context "context"

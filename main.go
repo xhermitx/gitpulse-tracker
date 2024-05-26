@@ -9,7 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/xhermitx/gitpulse-tracker/API"
-	github "github.com/xhermitx/gitpulse-tracker/service"
+	"github.com/xhermitx/gitpulse-tracker/gitfetch"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -52,9 +52,9 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
 
-		client := github.NewGithubClient(conn)
+		client := gitfetch.NewGithubClient(conn)
 
-		res, err := client.FetchData(ctx, &github.Profile{UserID: 1, JobID: 2, Usernames: userIDs})
+		res, err := client.FetchData(ctx, &gitfetch.Profile{UserID: 1, JobID: 2, Usernames: userIDs})
 		if err != nil {
 			log.Fatal(err)
 		}
