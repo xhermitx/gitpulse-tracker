@@ -1,16 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/xhermitx/gitpulse-tracker/API"
-	"github.com/xhermitx/gitpulse-tracker/models"
-	"github.com/xhermitx/gitpulse-tracker/utils"
+	github "github.com/xhermitx/gitpulse-tracker/service"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -33,33 +34,53 @@ func main() {
 		log.Panic("Error loading the environment variables")
 	}
 
-	var lock sync.Mutex
-	var wg sync.WaitGroup
+	// var lock sync.Mutex
+	// var wg sync.WaitGroup
 
 	userIDs, err := API.GetDriveDetails()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var detailedList []models.GitResponse
+	func(userIDs []string) {
+		conn, err := grpc.NewClient("localhost:3000", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("failed to connect to gRPC server at localhost:8080: %v", err)
+		}
+		defer conn.Close()
 
-	// GET USER DETAILS FROM GITHUB
-	wg.Add(len(userIDs))
-	for _, user := range userIDs {
-		go func(user string) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
 
-			defer wg.Done()
+		client := github.NewGithubClient(conn)
 
-			if res, err := API.GetUserDetails(user); err != nil {
-				log.Println(err)
-			} else {
-				lock.Lock()
-				detailedList = append(detailedList, res)
-				lock.Unlock()
-			}
-		}(user)
-	}
-	wg.Wait()
+		res, err := client.FetchData(ctx, &github.Profile{UserID: 1, JobID: 2, Usernames: userIDs})
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	utils.Printer(detailedList)
+		fmt.Print("Successful Response: ", res)
+	}(userIDs)
+
+	// var detailedList []models.GitResponse
+
+	// // GET USER DETAILS FROM GITHUB
+	// wg.Add(len(userIDs))
+	// for _, user := range userIDs {
+	// 	go func(user string) {
+
+	// 		defer wg.Done()
+
+	// 		if res, err := API.GetUserDetails(user); err != nil {
+	// 			log.Println(err)
+	// 		} else {
+	// 			lock.Lock()
+	// 			detailedList = append(detailedList, res)
+	// 			lock.Unlock()
+	// 		}
+	// 	}(user)
+	// }
+	// wg.Wait()
+
+	// utils.Printer(detailedList)
 }
