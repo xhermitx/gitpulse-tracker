@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/xhermitx/gitpulse-tracker/models"
+	"github.com/xhermitx/gitpulse-tracker/frontend/models"
 )
 
 func Printer(candidates []models.GitResponse) {

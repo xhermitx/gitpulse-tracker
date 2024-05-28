@@ -32,11 +32,15 @@ type GitResponse struct {
 }
 
 type Profile struct {
-	userID          uint
-	jobID           uint
-	username        string
-	followers       uint
-	contributions   uint
-	mostPopularRepo string
-	repoStars       uint
+	JobID           uint
+	Username        string
+	Followers       int
+	Contributions   int
+	MostPopularRepo string
+	RepoStars       int
+}
+
+type Candidate struct {
+	JobID     uint
+	Usernames []string
 }

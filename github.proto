@@ -10,7 +10,7 @@ message Profile{
 
 // SUCCESS OR FAILURE
 message Response{
-    repeated string User = 1;
+    repeated User candidate = 1;
     bool status = 2;
 }
 

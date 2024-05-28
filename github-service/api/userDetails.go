@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -14,6 +15,9 @@ import (
 func GetUserDetails(username string) (models.GitResponse, error) {
 	// LOAD ENV VARIABLES
 	token := os.Getenv("GITHUB_TOKEN")
+	if len(token) == 0 {
+		log.Panic("Error loading the environment variables")
+	}
 
 	query := `query GetUserDetails($username: String!) {
 		user(login: $username) {
