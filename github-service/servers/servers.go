@@ -89,7 +89,13 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 					return 0
 				}(),
 			}
-			fmt.Println(candidate.Username)
+
+			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
+			go func() {
+				if err = API.Publish(candidate); err != nil {
+					fmt.Print(err)
+				}
+			}()
 		}
 	}
 }

@@ -9,6 +9,8 @@ require (
 	google.golang.org/api v0.181.0
 )
 
+require github.com/rabbitmq/amqp091-go v1.10.0 // indirect
+
 require (
 	cloud.google.com/go/auth v0.4.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect

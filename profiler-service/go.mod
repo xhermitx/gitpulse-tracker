@@ -1,4 +1,4 @@
-module github.com/xhermitx/gitpulse-tracker/github-service
+module github.com/xhermitx/gitpulse-tracker/profiler-service
 
 go 1.22.2
 

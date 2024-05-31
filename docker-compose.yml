@@ -9,6 +9,33 @@ services:
       - "3000:8080"
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+    depends_on:
+      - rabbitmq
+    # deploy:
+    #   mode: replicated
+    #   replicas: 1
+
+  # profiler-service:
+  #   build: 
+  #     context: ./profiler-service
+  #     dockerfile: ./profiler-service.dockerfile
+  #   restart: always
+  #   depends_on:
+  #     - rabbitmq
+    # ports:
+    #   - "3001:8081"
+    # deploy:
+    #   mode: replicated
+    #   replicas: 1
+    
+  rabbitmq:
+    image: 'rabbitmq:3.12-management'
+    environment:
+      RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "password"
+    ports:
+      - "8000:5672" # RabbitMQ
+      - "8001:15672" # Management interface
     # deploy:
     #   mode: replicated
     #   replicas: 1
