@@ -31,16 +31,17 @@ type GitResponse struct {
 	} `json:"errors"`
 }
 
-type Profile struct {
+type Job struct {
+	JobID     uint
+	Usernames []string
+}
+
+type Candidate struct {
 	JobID           uint
 	Username        string
 	Followers       int
 	Contributions   int
 	MostPopularRepo string
 	RepoStars       int
-}
-
-type Candidate struct {
-	JobID     uint
-	Usernames []string
+	Status          bool
 }

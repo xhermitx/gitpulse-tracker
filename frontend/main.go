@@ -104,7 +104,7 @@ func main() {
 
 	// utils.Printer(detailedList)
 	// // GET USER DETAILS FROM GITHUB
-	candidate := Candidate{JobID: 1, Usernames: []string{"xhermitx", "khalidfarooq"}}
+	candidate := Candidate{JobID: 1, Usernames: []string{"xhermitx", "khalidfarooq", "jhasuraj020", "test1", "test2", "test3"}}
 
 	httpRequest(candidate)
 

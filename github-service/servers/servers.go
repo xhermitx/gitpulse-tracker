@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/xhermitx/gitpulse-tracker/github-service/API"
@@ -55,7 +56,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var res models.Candidate
+	var res models.Job
 
 	if err = json.Unmarshal(reqBody, &res); err != nil {
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
@@ -65,38 +66,55 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(res.Usernames))
 	// GET EACH CANDIDATE'S DATA FROM GITHUB
-	for _, u := range res.Usernames {
-		profile, err := API.GetUserDetails(u)
-		if err != nil {
-			log.Println(err)
-		} else {
-			candidate := models.Profile{
-				JobID:         res.JobID,
-				Username:      profile.Data.User.Login,
-				Followers:     profile.Data.User.Followers.TotalCount,
-				Contributions: profile.Data.User.ContributionsCollection.ContributionCalendar.TotalContributions,
-				MostPopularRepo: func() string {
-					if len(profile.Data.User.Repositories.Nodes) > 0 {
-						return profile.Data.User.Repositories.Nodes[0].Name
-					}
-					return ""
-				}(),
-				RepoStars: func() int {
-					if len(profile.Data.User.Repositories.Nodes) > 0 {
-						return profile.Data.User.Repositories.Nodes[0].StargazerCount
-					}
-					return 0
-				}(),
-			}
+	for i, u := range res.Usernames {
+		// profile, err := API.GetUserDetails(u)
+		// if err != nil {
+		// 	log.Println(err)
+		// } else {
+		// 	candidate := models.Candidate{
+		// 		JobID:         res.JobID,
+		// 		Username:      profile.Data.User.Login,
+		// 		Followers:     profile.Data.User.Followers.TotalCount,
+		// 		Contributions: profile.Data.User.ContributionsCollection.ContributionCalendar.TotalContributions,
+		// 		MostPopularRepo: func() string {
+		// 			if len(profile.Data.User.Repositories.Nodes) > 0 {
+		// 				return profile.Data.User.Repositories.Nodes[0].Name
+		// 			}
+		// 			return ""
+		// 		}(),
+		// 		RepoStars: func() int {
+		// 			if len(profile.Data.User.Repositories.Nodes) > 0 {
+		// 				return profile.Data.User.Repositories.Nodes[0].StargazerCount
+		// 			}
+		// 			return 0
+		// 		}(),
+		// 	}
 
-			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
-			go func() {
-				if err = API.Publish(candidate); err != nil {
-					fmt.Print(err)
-				}
-			}()
+		candidate := models.Candidate{
+			JobID:           2,
+			Username:        u,
+			Followers:       4 + i, // Added a variable for different scores on redis
+			Contributions:   20,
+			MostPopularRepo: "Test",
+			RepoStars:       200,
+			Status:          false,
 		}
+
+		// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
+		go func(candidate models.Candidate) {
+			defer wg.Done()
+			if err = API.Publish(candidate); err != nil {
+				fmt.Print(err)
+			}
+		}(candidate)
+	}
+
+	wg.Wait()
+	if err = API.Publish(models.Candidate{JobID: 2, Status: true}); err != nil {
+		log.Print(err)
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	models "github.com/xhermitx/gitpulse-tracker/models"
+	models "github.com/xhermitx/gitpulse-tracker/frontend/models"
 )
 
 func GetUserDetails(username string) (models.GitResponse, error) {

@@ -13,7 +13,7 @@ import (
 )
 
 // FUNCTION TO PUSH CANDIDATE DATA TO THE MESSAGE QUEUE
-func Publish(candidate models.Profile) error {
+func Publish(data any) error {
 
 	conn, err := connect()
 	failOnError(err, "Failed to connect to RabbitMQ")
@@ -38,8 +38,11 @@ func Publish(candidate models.Profile) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body, err := json.Marshal(candidate)
-	failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+	body, err := json.Marshal(data)
+
+	if candidate, ok := data.(models.Candidate); ok {
+		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+	}
 
 	err = ch.PublishWithContext(ctx,
 		"",     // exchange
@@ -50,7 +53,11 @@ func Publish(candidate models.Profile) error {
 			ContentType: "application/json",
 			Body:        []byte(body),
 		})
-	failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+
+	if candidate, ok := data.(models.Candidate); ok {
+		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+	}
+
 	log.Printf(" [x] Sent %s\n", body)
 
 	// fmt.Println(candidate)

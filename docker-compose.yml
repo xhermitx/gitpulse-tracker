@@ -11,19 +11,21 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     depends_on:
       - rabbitmq
+      - redis
     # deploy:
     #   mode: replicated
     #   replicas: 1
 
-  # profiler-service:
-  #   build: 
-  #     context: ./profiler-service
-  #     dockerfile: ./profiler-service.dockerfile
-  #   restart: always
-  #   depends_on:
-  #     - rabbitmq
-    # ports:
-    #   - "3001:8081"
+  profiler-service:
+    build: 
+      context: ./profiler-service
+      dockerfile: ./profiler-service.dockerfile
+    restart: always
+    depends_on:
+      - rabbitmq
+      - redis
+    ports:
+      - "3001:8081"
     # deploy:
     #   mode: replicated
     #   replicas: 1
@@ -39,3 +41,7 @@ services:
     # deploy:
     #   mode: replicated
     #   replicas: 1
+  redis:
+    image: 'redis:7-alpine'
+    ports:
+      - "6379:6379"
