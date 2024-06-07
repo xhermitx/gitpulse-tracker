@@ -36,7 +36,7 @@ func GetDriveDetails() ([]string, error) {
 		return nil, err
 	}
 
-	folderID := os.Getenv("FOLDER_ID")
+	folderID := os.Getenv("FOLDER_ID") // TO BE TAKEN AS A PARAMETER
 
 	// QUERY TO READ FILES RESIDING IN FOLDERS
 	query := fmt.Sprintf("'%s' in parents", folderID)

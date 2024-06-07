@@ -75,8 +75,8 @@ func main() {
 	// 	log.Panic("Error loading the environment variables")
 	// }
 
-	// // var lock sync.Mutex
-	// // var wg sync.WaitGroup
+	// var lock sync.Mutex
+	// var wg sync.WaitGroup
 
 	// userIDs, err := API.GetDriveDetails()
 	// if err != nil {

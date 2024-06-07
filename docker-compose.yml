@@ -12,9 +12,6 @@ services:
     depends_on:
       - rabbitmq
       - redis
-    # deploy:
-    #   mode: replicated
-    #   replicas: 1
 
   profiler-service:
     build: 
@@ -26,9 +23,6 @@ services:
       - redis
     ports:
       - "3001:8081"
-    # deploy:
-    #   mode: replicated
-    #   replicas: 1
     
   rabbitmq:
     image: 'rabbitmq:3.12-management'
@@ -38,10 +32,25 @@ services:
     ports:
       - "8000:5672" # RabbitMQ
       - "8001:15672" # Management interface
-    # deploy:
-    #   mode: replicated
-    #   replicas: 1
+  
   redis:
     image: 'redis:7-alpine'
     ports:
       - "6379:6379"
+  
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: "gitpulse"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+      MYSQL_ROOT_PASSWORD: "rootpassword"
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+
+  db-data:
