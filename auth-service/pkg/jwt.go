@@ -3,5 +3,5 @@ package pkg
 import "fmt"
 
 func JwtAuth() {
-	fmt.Println("Handle jwt authentication")
+	fmt.Println("Generate a JWT")
 }
