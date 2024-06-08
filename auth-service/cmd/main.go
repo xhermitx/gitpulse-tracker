@@ -33,14 +33,16 @@ func handleRequests(handler *handlers.TaskHandler) {
 }
 
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Load("./../.ENV")
 	if err != nil {
 		log.Panic(err)
 	}
 
+	fmt.Println(os.Getenv("DB_SERVER"))
+
 	db, err := gorm.Open(mysql.Open(os.Getenv("DB_SERVER")), &gorm.Config{})
 	if err != nil {
-		log.Panic(err)
+		log.Fatal("Failed to Connect to DB")
 	}
 	mysqlDB := msql.NewMySQLStore(db)
 	taskHandler := handlers.NewTaskHandler(mysqlDB)
