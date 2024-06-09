@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/app/services"
 	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -26,6 +27,13 @@ func (m *MySQLStore) CreateRecruiter(Recruiter *models.Recruiter) error {
 	if res.Error != nil {
 		if errors.Is(res.Error, gorm.ErrRecordNotFound) {
 
+			hashedPass, err := bcrypt.GenerateFromPassword([]byte(Recruiter.Password), 10)
+			if err != nil {
+				return err
+			}
+
+			Recruiter.Password = string(hashedPass)
+
 			//CREATE THE USER
 			res = m.db.Create(Recruiter)
 
@@ -44,19 +52,31 @@ func (m *MySQLStore) CreateRecruiter(Recruiter *models.Recruiter) error {
 	return fmt.Errorf("user already exists")
 }
 
-func (m *MySQLStore) AuthenticateRecruiter(username string, password string) (*models.Recruiter, error) {
+func (m *MySQLStore) AuthenticateRecruiter(credentials *models.Credentials) (string, error) {
 
 	var recruiter models.Recruiter
 
-	res := m.db.First(&recruiter, "username = ?", username)
+	res := m.db.Where("username = ?", credentials.Username).First(&recruiter)
 	if res.Error != nil {
-		return nil, res.Error
+		log.Println("Error finding the username:", res.Error)
+		return "", res.Error
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(recruiter.Password), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(recruiter.Password), []byte(credentials.Password))
 	if err != nil {
-		return nil, fmt.Errorf("incorrect username or password")
+		return "", err
 	}
 
-	return &recruiter, nil
+	return services.JwtAuth(recruiter.RecruiterId), nil
+}
+
+func (m *MySQLStore) FindRecruiter(id int) (models.Recruiter, error) {
+	var recruiter models.Recruiter
+
+	res := m.db.First(&recruiter, id)
+	if res.Error != nil {
+		return recruiter, res.Error
+	}
+
+	return recruiter, nil
 }
