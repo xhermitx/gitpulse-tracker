@@ -9,7 +9,7 @@ import (
 )
 
 // GENERATE TOKENS
-func JwtAuth(id int) string {
+func JwtAuth(id uint) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  id,
 		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),

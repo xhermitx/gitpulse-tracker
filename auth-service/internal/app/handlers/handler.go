@@ -20,9 +20,7 @@ type TaskHandler struct {
 }
 
 func NewTaskHandler(s store.Store) *TaskHandler {
-	return &TaskHandler{
-		store: s,
-	}
+	return &TaskHandler{store: s}
 }
 
 func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +131,7 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		recruiter, err := t.store.FindRecruiter(int(claims["id"].(float64)))
+		recruiter, err := t.store.FindRecruiter(uint(claims["id"].(float64)))
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return

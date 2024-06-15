@@ -70,7 +70,7 @@ func (m *MySQLStore) AuthenticateRecruiter(credentials *models.Credentials) (str
 	return services.JwtAuth(recruiter.RecruiterId), nil
 }
 
-func (m *MySQLStore) FindRecruiter(id int) (models.Recruiter, error) {
+func (m *MySQLStore) FindRecruiter(id uint) (models.Recruiter, error) {
 	var recruiter models.Recruiter
 
 	res := m.db.First(&recruiter, id)

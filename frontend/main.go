@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
+	"github.com/xhermitx/gitpulse-tracker/frontend/internal/servers"
 )
 
 // MAKE REQUEST USING GRPC
@@ -30,32 +26,38 @@ type Candidate struct {
 	Usernames []string
 }
 
-func httpRequest(candidate Candidate) {
-	body, err := json.Marshal(candidate)
-	if err != nil {
-		log.Fatal(err)
-	}
+// func httpRequest(candidate Candidate) {
+// 	body, err := json.Marshal(candidate)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	postURL := "http://localhost:3000/"
+// 	postURL := "http://localhost:3000/"
 
-	req, err := http.NewRequest("POST", postURL, bytes.NewBuffer(body))
-	if err != nil {
-		log.Fatal(err)
-	}
+// 	req, err := http.NewRequest("POST", postURL, bytes.NewBuffer(body))
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	req.Header.Add("Content-Type", "application/json")
+// 	req.Header.Add("Content-Type", "application/json")
 
-	client := &http.Client{}
+// 	client := &http.Client{}
 
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
+// 	res, err := client.Do(req)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	fmt.Println(res.StatusCode)
-}
+// 	fmt.Println(res.StatusCode)
+// }
 
 func main() {
+
+	servers.HttpServer()
+
+	// candidate := Candidate{JobID: 1, Usernames: []string{"xhermitx", "khalidfarooq", "jhasuraj020", "test1", "test2", "test3"}}
+
+	// httpRequest(candidate)
 
 	// PERFORMANCE CHECKS
 	// t := time.Now()
@@ -104,8 +106,5 @@ func main() {
 
 	// utils.Printer(detailedList)
 	// // GET USER DETAILS FROM GITHUB
-	candidate := Candidate{JobID: 1, Usernames: []string{"xhermitx", "khalidfarooq", "jhasuraj020", "test1", "test2", "test3"}}
-
-	httpRequest(candidate)
 
 }
