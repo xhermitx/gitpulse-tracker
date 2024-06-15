@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/xhermitx/gitpulse-tracker/frontend/internal/models"
 	"github.com/xhermitx/gitpulse-tracker/frontend/internal/store"
@@ -81,4 +82,28 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	fmt.Fprintf(w, "Job Deleted Successfully")
+}
+
+func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
+	recruiter_id, err := strconv.Atoi(r.URL.Query().Get("recruiter_id"))
+	if err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	jobs, err := h.store.ListJobs(uint(recruiter_id))
+	if err != nil {
+		http.Error(w, "Failed to Delete the job Id", http.StatusInternalServerError) // 500
+		return
+	}
+
+	res_data, err := json.Marshal(jobs)
+	if err != nil {
+		http.Error(w, "failed to get the job list", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res_data)
 }

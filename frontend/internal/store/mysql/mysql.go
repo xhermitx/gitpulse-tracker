@@ -49,3 +49,15 @@ func (m MySQLStore) UpdateJob(Job *models.Job) (*models.Job, error) {
 func (m MySQLStore) DeleteJob(JobId uint) error {
 	return nil
 }
+
+func (m MySQLStore) ListJobs(RecruiterId uint) ([]*models.Job, error) {
+
+	var jobs []*models.Job
+
+	res := m.db.Find(&jobs, "recruiter_id = ?", RecruiterId)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return jobs, nil
+}

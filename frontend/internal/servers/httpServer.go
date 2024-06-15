@@ -26,24 +26,26 @@ func handleRequests(handler *handlers.TaskHandler) {
 
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/job/create", handler.CreateJob).Methods("POST")
-	router.HandleFunc("/job/update", handler.DeleteJob).Methods("POST")
-	router.HandleFunc("/job/run", handler.UpdateJob).Methods("GET")
+	router.HandleFunc("/job/delete", handler.DeleteJob).Methods("POST")
+	router.HandleFunc("/job/update", handler.UpdateJob).Methods("POST")
+	router.HandleFunc("/job/list", handler.ListJobs).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(os.Getenv("ADDRESS"), router))
 }
 
 func HttpServer() {
-	err := godotenv.Load("./../.ENV")
+	err := godotenv.Load("C:/Users/rohthaku/OneDrive - Cisco/Documents/GO/GitPulse/gitpulse-tracker/frontend/.ENV")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	fmt.Println(os.Getenv("DB_SERVER"))
+	fmt.Println("DSN: ", os.Getenv("DB_SERVER"))
 
 	db, err := gorm.Open(mysql.Open(os.Getenv("DB_SERVER")), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to Connect to DB")
 	}
+	log.Println("CONNECTED TO DB")
 	mysqlDB := msql.NewMySQLStore(db)
 	taskHandler := handlers.NewTaskHandler(mysqlDB)
 

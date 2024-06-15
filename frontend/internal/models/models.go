@@ -18,12 +18,12 @@ type Recruiter struct {
 
 // Job represents a job posting by a recruiter
 type Job struct {
-	JobId       uint      `gorm:"not null; unique"`
-	JobName     string    `gorm:"not null"`
-	Description string    `gorm:"type:text; not null"`
-	DriveLink   string    `gorm:"not null"`
-	CreatedAt   time.Time `gorm:"type:dateTime"`
-	RecruiterId uint      `gorm:"not null"`
+	JobId       uint      `json:"job_id" gorm:"primaryKey;autoIncrement"`
+	JobName     string    `json:"job_name" gorm:"not null"`
+	Description string    `json:"description" gorm:"type:text; not null"`
+	DriveLink   string    `json:"drive_link" gorm:"not null"`
+	CreatedAt   time.Time `json:"created_at" gorm:"type:dateTime"`
+	RecruiterId uint      `json:"recruiter_id" gorm:"not null"`
 }
 
 // Candidates List
