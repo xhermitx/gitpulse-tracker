@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
+	"github.com/xhermitx/gitpulse-tracker/frontend/API"
 	"github.com/xhermitx/gitpulse-tracker/frontend/internal/models"
 	"github.com/xhermitx/gitpulse-tracker/frontend/internal/store"
+	"github.com/xhermitx/gitpulse-tracker/frontend/internal/utils"
 )
 
 type TaskHandler struct {
@@ -63,6 +67,7 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to read the body", http.StatusBadRequest) // 400
 		return
 	}
+	defer r.Body.Close()
 
 	var jobId uint
 
@@ -85,13 +90,14 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
-	recruiter_id, err := strconv.Atoi(r.URL.Query().Get("recruiter_id"))
+	// VALIDATE THE TOKEN TO GET A RECRUITER INFORMATION
+	recruiter, err := utils.Auth(r)
 	if err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	jobs, err := h.store.ListJobs(uint(recruiter_id))
+	jobs, err := h.store.ListJobs(recruiter.RecruiterId)
 	if err != nil {
 		http.Error(w, "Failed to Delete the job Id", http.StatusInternalServerError) // 500
 		return
@@ -106,4 +112,72 @@ func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res_data)
+}
+
+func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
+	// GET THE TOKEN AND PASS IT AS A HEADER TO THE GITHUB SERVICE
+	tokenString, err := utils.GetToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	// GET THE JOB ID FROM BODY
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	jobId, err := strconv.Atoi(string(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	job, err := h.store.GetJob(uint(jobId))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type candidates struct {
+		JobID     uint
+		Usernames []string
+	}
+
+	folderId, err := utils.ExtractFolderID(job.DriveLink)
+	if err != nil {
+		http.Error(w, "invalid drive link", http.StatusBadRequest)
+		return
+	}
+
+	usernames, err := API.GetDriveDetails(folderId)
+	if err != nil {
+		http.Error(w, "error fetching data from Drive", http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(candidates{job.JobId, usernames})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	requestURL := fmt.Sprintf("http://github-service%s/github", os.Getenv("GITHUB_ADDRESS"))
+	req, err := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(payload))
+	if err != nil {
+		http.Error(w, "client: could not create request", http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, "client: error making request", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("client: Profiling Triggered!\n")
+	fmt.Printf("client: status code: %d\n", res.StatusCode)
 }

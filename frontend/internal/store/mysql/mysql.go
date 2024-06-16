@@ -61,3 +61,15 @@ func (m MySQLStore) ListJobs(RecruiterId uint) ([]*models.Job, error) {
 
 	return jobs, nil
 }
+
+func (m MySQLStore) GetJob(JobId uint) (*models.Job, error) {
+
+	var job *models.Job
+
+	res := m.db.Find(&job, "job_id = ?", JobId)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return job, nil
+}

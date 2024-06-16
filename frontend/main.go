@@ -22,7 +22,7 @@ import (
 // }
 
 type Candidate struct {
-	JobID     uint
+	JobId     uint
 	Usernames []string
 }
 

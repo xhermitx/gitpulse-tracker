@@ -6,47 +6,13 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/xhermitx/gitpulse-tracker/github-service/API"
 	"github.com/xhermitx/gitpulse-tracker/github-service/models"
 )
-
-// type myServer struct {
-// 	gitfetch.UnimplementedGithubServer
-// }
-
-// func (s *myServer) FetchData(ctx context.Context, in *gitfetch.Profile) (*gitfetch.Response, error) {
-
-// 	if len(in.Usernames) == 0 {
-// 		return nil, fmt.Errorf("error processing the requests")
-// 	}
-
-// 	for _, userID := range in.Usernames {
-// 		user, err := API.GetUserDetails(userID)
-// 		if err != nil {
-// 			log.Printf("Error fetching the user %s : %v", user.Data.User.Login, err)
-// 		}
-// 	}
-
-// 	return &gitfetch.Response{Candidate: []*gitfetch.User{}, Status: true}, nil
-// }
-
-// func GrpcServer() {
-// 	lis, err := net.Listen("tcp", ":8080")
-// 	if err != nil {
-// 		log.Fatalf("cannot create listener: %v", err)
-// 	}
-
-// 	server := grpc.NewServer()
-
-// 	gitfetch.RegisterGithubServer(server, &myServer{})
-// 	log.Printf("gRPC server is listening at %v", lis.Addr())
-// 	if err := server.Serve(lis); err != nil {
-// 		log.Fatalf("failed to server: %v", err)
-// 	}
-// }
 
 func FetchData(w http.ResponseWriter, r *http.Request) {
 
@@ -68,60 +34,64 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(res.Usernames))
-	// GET EACH CANDIDATE'S DATA FROM GITHUB
-	for i, u := range res.Usernames {
-		// profile, err := API.GetUserDetails(u)
-		// if err != nil {
-		// 	log.Println(err)
-		// } else {
-		// 	candidate := models.Candidate{
-		// 		JobID:         res.JobID,
-		// 		Username:      profile.Data.User.Login,
-		// 		Followers:     profile.Data.User.Followers.TotalCount,
-		// 		Contributions: profile.Data.User.ContributionsCollection.ContributionCalendar.TotalContributions,
-		// 		MostPopularRepo: func() string {
-		// 			if len(profile.Data.User.Repositories.Nodes) > 0 {
-		// 				return profile.Data.User.Repositories.Nodes[0].Name
-		// 			}
-		// 			return ""
-		// 		}(),
-		// 		RepoStars: func() int {
-		// 			if len(profile.Data.User.Repositories.Nodes) > 0 {
-		// 				return profile.Data.User.Repositories.Nodes[0].StargazerCount
-		// 			}
-		// 			return 0
-		// 		}(),
-		// 	}
 
-		candidate := models.Candidate{
-			JobID:           2,
-			Username:        u,
-			Followers:       4 + i, // Added a variable for different scores on redis
-			Contributions:   20,
-			MostPopularRepo: "Test",
-			RepoStars:       200,
-			Status:          false,
+	var candidate models.Candidate
+	// GET EACH CANDIDATE'S DATA FROM GITHUB
+	for _, u := range res.Usernames {
+		profile, err := API.GetUserDetails(u)
+		if err != nil {
+			log.Println(err)
+		} else {
+			candidate = models.Candidate{
+				JobId:         res.JobID,
+				GithubId:      profile.Data.User.Login,
+				Followers:     uint(profile.Data.User.Followers.TotalCount),
+				Contributions: uint(profile.Data.User.ContributionsCollection.ContributionCalendar.TotalContributions),
+				MostPopularRepo: func() string {
+					if len(profile.Data.User.Repositories.Nodes) > 0 {
+						return profile.Data.User.Repositories.Nodes[0].Name
+					}
+					return ""
+				}(),
+				RepoStars: func() uint {
+					if len(profile.Data.User.Repositories.Nodes) > 0 {
+						return uint(profile.Data.User.Repositories.Nodes[0].StargazerCount)
+					}
+					return 0
+				}(),
+			}
+
+			// candidate := models.Candidate{
+			// 	JobId:           2,
+			// 	GithubId:        u,
+			// 	Followers:       uint(4 + i), // Added a variable for different scores on redis
+			// 	Contributions:   20,
+			// 	MostPopularRepo: "Test",
+			// 	RepoStars:       200,
+			// 	Status:          false,
+			// }
+
+			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
+			go func(candidate models.Candidate) {
+				defer wg.Done()
+				if err = API.Publish(candidate); err != nil {
+					fmt.Print(err)
+				}
+			}(candidate)
+
 		}
 
-		// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
-		go func(candidate models.Candidate) {
-			defer wg.Done()
-			if err = API.Publish(candidate); err != nil {
-				fmt.Print(err)
-			}
-		}(candidate)
-	}
-
-	wg.Wait()
-	if err = API.Publish(models.Candidate{JobID: 2, Status: true}); err != nil {
-		log.Print(err)
+		wg.Wait()
+		if err = API.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
+			log.Print(err)
+		}
 	}
 }
 
 func HttpServer() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/", FetchData).Methods("POST")
+	router.HandleFunc("/github", FetchData).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(os.Getenv("GITHUB_ADDRESS"), router))
 }

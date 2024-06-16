@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -41,7 +42,7 @@ func Publish(data any) error {
 	body, err := json.Marshal(data)
 
 	if candidate, ok := data.(models.Candidate); ok {
-		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.GithubId))
 	}
 
 	err = ch.PublishWithContext(ctx,
@@ -53,9 +54,9 @@ func Publish(data any) error {
 			ContentType: "application/json",
 			Body:        []byte(body),
 		})
-
-	if candidate, ok := data.(models.Candidate); ok {
-		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.Username))
+	if err != nil {
+		fmt.Println(err)
+		return err
 	}
 
 	log.Printf(" [x] Sent %s\n", body)
@@ -78,7 +79,7 @@ func connect() (*amqp.Connection, error) {
 
 	// don't continue until rabbit is ready
 	for {
-		c, err := amqp.Dial("amqp://admin:password@rabbitmq:5672/")
+		c, err := amqp.Dial(os.Getenv("RABBITMQ"))
 		if err != nil {
 			fmt.Println("RabbitMQ not yet ready...")
 			counts++

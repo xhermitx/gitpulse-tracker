@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/xhermitx/gitpulse-tracker/frontend/internal/handlers"
 	msql "github.com/xhermitx/gitpulse-tracker/frontend/internal/store/mysql"
 	"gorm.io/driver/mysql"
@@ -29,15 +28,13 @@ func handleRequests(handler *handlers.TaskHandler) {
 	router.HandleFunc("/job/delete", handler.DeleteJob).Methods("POST")
 	router.HandleFunc("/job/update", handler.UpdateJob).Methods("POST")
 	router.HandleFunc("/job/list", handler.ListJobs).Methods("GET")
+	router.HandleFunc("/job/trigger", handler.Trigger).Methods("POST")
 
+	// START A SERVER
 	log.Fatal(http.ListenAndServe(os.Getenv("ADDRESS"), router))
 }
 
 func HttpServer() {
-	err := godotenv.Load("C:/Users/rohthaku/OneDrive - Cisco/Documents/GO/GitPulse/gitpulse-tracker/frontend/.ENV")
-	if err != nil {
-		log.Panic(err)
-	}
 
 	fmt.Println("DSN: ", os.Getenv("DB_SERVER"))
 

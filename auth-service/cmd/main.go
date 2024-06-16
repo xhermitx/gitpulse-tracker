@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/app/handlers"
 	msql "github.com/xhermitx/gitpulse-tracker/auth-service/internal/store/mysql"
 	"gorm.io/driver/mysql"
@@ -27,16 +26,12 @@ func handleRequests(handler *handlers.TaskHandler) {
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/auth/register", handler.Register).Methods("POST")
 	router.HandleFunc("/auth/login", handler.Login).Methods("POST")
-	router.HandleFunc("/auth/validate", handler.Validate).Methods("GET")
+	router.HandleFunc("/auth/validate", handler.Validate).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(os.Getenv("ADDRESS"), router))
 }
 
 func main() {
-	err := godotenv.Load("./../.ENV")
-	if err != nil {
-		log.Panic(err)
-	}
 
 	fmt.Println(os.Getenv("DB_SERVER"))
 

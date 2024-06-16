@@ -6,10 +6,12 @@ type Candidate struct {
 }
 
 type RedisCandidate struct {
-	JobID           uint
-	Username        string
-	Followers       int
-	Contributions   int
-	MostPopularRepo string
-	RepoStars       int
+	CandidateId     uint   `gorm:"not null; unique"`
+	GithubId        string `gorm:"size: 255;not null"`
+	Followers       uint
+	Contributions   uint
+	MostPopularRepo string `gorm:"size:255"`
+	RepoStars       uint
+	Score           uint
+	JobId           uint `gorm:"not null; unique; index"`
 }

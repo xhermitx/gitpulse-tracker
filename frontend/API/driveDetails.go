@@ -14,7 +14,8 @@ import (
 	"google.golang.org/api/option"
 )
 
-func GetDriveDetails() ([]string, error) {
+func GetDriveDetails(githubLink string) ([]string, error) {
+
 	ctx := context.Background()
 
 	// Read the service account key file
@@ -36,7 +37,7 @@ func GetDriveDetails() ([]string, error) {
 		return nil, err
 	}
 
-	folderID := os.Getenv("FOLDER_ID") // TO BE TAKEN AS A PARAMETER
+	folderID := githubLink[3:]
 
 	// QUERY TO READ FILES RESIDING IN FOLDERS
 	query := fmt.Sprintf("'%s' in parents", folderID)

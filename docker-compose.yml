@@ -6,9 +6,10 @@ services:
       dockerfile: ./github-service.dockerfile
     restart: always
     ports:
-      - "3000:8080"
+      - "8080:8080"
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      RABBITMQ: ${RABBITMQ}
     depends_on:
       - rabbitmq
       - redis
@@ -18,39 +19,66 @@ services:
       context: ./profiler-service
       dockerfile: ./profiler-service.dockerfile
     restart: always
+    environment:
+      DB_SERVER: ${DB_SERVER}
+      RABBITMQ: ${RABBITMQ}
     depends_on:
       - rabbitmq
       - redis
+  
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: ./auth-service.dockerfile
+    restart: always
+    environment:
+      DB_SERVER: ${DB_SERVER}
+      SECRET: ${SECRET}
+      ADDRESS: ${AUTH_ADDRESS}
     ports:
-      - "3001:8081"
-    
+      - "8000:8000"
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ./frontend.dockerfile
+    restart: always
+    environment:
+      DB_SERVER: ${DB_SERVER}
+      ADDRESS: ${FRONTEND_ADDRESS}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./service-account-key.json:/secrets/service-account-key.json
+
   rabbitmq:
     image: 'rabbitmq:3.12-management'
     environment:
       RABBITMQ_DEFAULT_USER: "admin"
       RABBITMQ_DEFAULT_PASS: "password"
     ports:
-      - "8000:5672" # RabbitMQ
-      - "8001:15672" # Management interface
+      - "5672:5672" # RabbitMQ
+      - "15672:15672" # Management interface
   
   redis:
     image: 'redis:7-alpine'
     ports:
       - "6379:6379"
+
   
   db:
-    image: mysql:8.4
+    image: 'mysql:latest'
     environment:
       MYSQL_DATABASE: "gitpulse"
       MYSQL_USER: "user"
       MYSQL_PASSWORD: "password"
       MYSQL_ROOT_PASSWORD: "rootpassword"
     ports:
-      - "3306:3306"
+      - "3333:3306" # DIFFERENT PORT TO AVOID PORT CONFLICT WITH LOCAL INSTANCE
     volumes:
-      - db-data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
+      - db-store:/var/lib/mysql
+    command: ["mysqld", "--mysql-native-password=ON"]
 
 volumes:
 
-  db-data:
+  db-store:

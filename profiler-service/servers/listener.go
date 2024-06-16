@@ -5,15 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	redis "github.com/redis/go-redis/v9"
 	api "github.com/xhermitx/gitpulse-tracker/profiler-service/API"
 	"github.com/xhermitx/gitpulse-tracker/profiler-service/models"
+	"github.com/xhermitx/gitpulse-tracker/profiler-service/store"
 )
 
 func Listener() {
-	conn, err := amqp.Dial("amqp://admin:password@rabbitmq:5672/")
+	fmt.Println("RABBITMQ: ", os.Getenv("RABBITMQ"))
+
+	conn, err := amqp.Dial(os.Getenv("RABBITMQ"))
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -53,7 +57,7 @@ func Listener() {
 			}
 
 			rdb := redis.NewClient(&redis.Options{
-				Addr:     "redis:6379",
+				Addr:     os.Getenv("REDIS"),
 				Password: "", // no password set
 				DB:       0,  // use default DB
 			})
@@ -68,11 +72,17 @@ func Listener() {
 
 			} else if data.Status {
 
-				fmt.Println("End sequence initiated for : ", data.JobID)
+				fmt.Println("End sequence initiated for : ", data.JobId)
 
-				// RETRIEVE THE TOP 5 CANDIDATES AND STORE IN DB
-				if err := api.Get(data.JobID, rdb, ctx); err != nil {
+				// RETRIEVE THE TOP 5 CANDIDATES
+				topCandidates, err := api.Get(data.JobId, rdb, ctx)
+				if err != nil {
 					failOnError(err, "Failed to Retrieve data from Redis")
+				}
+
+				// PUSH TO DB
+				if err = store.InsertData(topCandidates); err != nil {
+					log.Fatal(err)
 				}
 			}
 		}
