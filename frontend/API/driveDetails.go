@@ -14,19 +14,23 @@ import (
 	"google.golang.org/api/option"
 )
 
-func GetDriveDetails(githubLink string) ([]string, error) {
+func GetDriveDetails(folderID string) ([]string, error) {
 
 	ctx := context.Background()
 
 	// Read the service account key file
+	log.Println(os.Getenv("CREDENTIALS_JSON"))
+
 	data, err := os.ReadFile(os.Getenv("CREDENTIALS_JSON"))
 	if err != nil {
+		log.Println("Error reading Credentials")
 		return nil, err
 	}
 
 	// CREATE CONFIGS USING AUTHENTICATION
 	config, err := google.JWTConfigFromJSON(data, drive.DriveReadonlyScope)
 	if err != nil {
+		log.Println("Error getting JWT Configs")
 		return nil, err
 	}
 	client := config.Client(ctx)
@@ -34,10 +38,9 @@ func GetDriveDetails(githubLink string) ([]string, error) {
 	// CREATE A NEW DRIVE CLIENT
 	driveService, err := drive.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
+		log.Println("Error creating Service")
 		return nil, err
 	}
-
-	folderID := githubLink[3:]
 
 	// QUERY TO READ FILES RESIDING IN FOLDERS
 	query := fmt.Sprintf("'%s' in parents", folderID)
@@ -47,6 +50,7 @@ func GetDriveDetails(githubLink string) ([]string, error) {
 		Fields("nextPageToken, files(id, name)").
 		Do()
 	if err != nil {
+		log.Println("Error fetching the file list")
 		return nil, err
 	}
 

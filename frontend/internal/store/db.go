@@ -8,4 +8,5 @@ type Store interface {
 	UpdateJob(Job *models.Job) (*models.Job, error)
 	GetJob(JobId uint) (*models.Job, error)
 	ListJobs(RecruiterId uint) ([]*models.Job, error)
+	ListCandidates(JobId uint) ([]*models.TopCandidates, error)
 }

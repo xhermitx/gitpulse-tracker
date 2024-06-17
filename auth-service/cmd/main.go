@@ -28,7 +28,7 @@ func handleRequests(handler *handlers.TaskHandler) {
 	router.HandleFunc("/auth/login", handler.Login).Methods("POST")
 	router.HandleFunc("/auth/validate", handler.Validate).Methods("POST")
 
-	log.Fatal(http.ListenAndServe(os.Getenv("ADDRESS"), router))
+	log.Fatal(http.ListenAndServe(os.Getenv("AUTH_ADDRESS"), router))
 }
 
 func main() {

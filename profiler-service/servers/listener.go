@@ -66,7 +66,7 @@ func Listener() {
 
 			if !data.Status {
 				// STORE IN REDIS
-				if err := api.Set(data.RedisCandidate, rdb, ctx); err != nil {
+				if err := api.Set(data.TopCandidates, rdb, ctx); err != nil {
 					failOnError(err, "Failed to store the candidate on Redis")
 				}
 
@@ -82,7 +82,7 @@ func Listener() {
 
 				// PUSH TO DB
 				if err = store.InsertData(topCandidates); err != nil {
-					log.Fatal(err)
+					log.Println(err)
 				}
 			}
 		}
@@ -94,6 +94,6 @@ func Listener() {
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Panicf("%s: %s", msg, err)
+		log.Printf("\n%s: %s", msg, err)
 	}
 }

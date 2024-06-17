@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func InsertData(topCandidates []models.RedisCandidate) error {
+func InsertData(topCandidates []models.TopCandidates) error {
 
 	fmt.Println("DSN: ", os.Getenv("DB_SERVER"))
 
@@ -21,7 +21,6 @@ func InsertData(topCandidates []models.RedisCandidate) error {
 
 	//INSERT THE CANDIDATES
 	res := db.Create(topCandidates)
-
 	if res.Error != nil {
 		return res.Error
 	}

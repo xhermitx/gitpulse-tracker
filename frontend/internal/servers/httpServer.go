@@ -29,9 +29,10 @@ func handleRequests(handler *handlers.TaskHandler) {
 	router.HandleFunc("/job/update", handler.UpdateJob).Methods("POST")
 	router.HandleFunc("/job/list", handler.ListJobs).Methods("GET")
 	router.HandleFunc("/job/trigger", handler.Trigger).Methods("POST")
+	router.HandleFunc("/job/candidates", handler.TopCandidates).Methods("GET") // ?jobId=x
 
 	// START A SERVER
-	log.Fatal(http.ListenAndServe(os.Getenv("ADDRESS"), router))
+	log.Fatal(http.ListenAndServe(os.Getenv("FRONTEND_ADDRESS"), router))
 }
 
 func HttpServer() {

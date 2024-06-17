@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -19,11 +20,13 @@ func Auth(r *http.Request) (*models.Recruiter, error) {
 		return nil, err
 	}
 
+	fmt.Println("AUTH ADDRESS: ", os.Getenv("AUTH_ADDRESS"))
+
 	requestURL := fmt.Sprintf("http://auth-service%s/auth/validate", os.Getenv("AUTH_ADDRESS"))
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := http.NewRequest(http.MethodPost, requestURL, nil)
 	if err != nil {
 		fmt.Printf("client: could not create request: %s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
@@ -31,7 +34,7 @@ func Auth(r *http.Request) (*models.Recruiter, error) {
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Printf("client: error making http request: %s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	fmt.Printf("client: got response!\n")
@@ -40,13 +43,14 @@ func Auth(r *http.Request) (*models.Recruiter, error) {
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Printf("client: could not read response body: %s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	var recruiter models.Recruiter
 
 	if err = json.Unmarshal(resBody, &recruiter); err != nil {
+		log.Println("error unmarshaling the response")
 		return nil, err
 	}
 	return &recruiter, nil
@@ -56,6 +60,7 @@ func GetToken(r *http.Request) (string, error) {
 	// EXTRACT THE AUTHORIZATION HEADER
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
+		log.Println("empty auth header")
 		return "", errors.New("authorization header required")
 	}
 

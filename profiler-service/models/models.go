@@ -1,11 +1,11 @@
 package models
 
 type Candidate struct {
-	RedisCandidate
+	TopCandidates
 	Status bool
 }
 
-type RedisCandidate struct {
+type TopCandidates struct {
 	CandidateId     uint   `gorm:"not null; unique"`
 	GithubId        string `gorm:"size: 255;not null"`
 	Followers       uint

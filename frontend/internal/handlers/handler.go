@@ -145,18 +145,23 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		Usernames []string
 	}
 
+	// EXTRACT FOLDER ID FROM URL
 	folderId, err := utils.ExtractFolderID(job.DriveLink)
 	if err != nil {
 		http.Error(w, "invalid drive link", http.StatusBadRequest)
 		return
 	}
 
+	log.Println("FolderID: ", folderId)
+
+	// READ FOLDER CONTENTS
 	usernames, err := API.GetDriveDetails(folderId)
 	if err != nil {
 		http.Error(w, "error fetching data from Drive", http.StatusInternalServerError)
 		return
 	}
 
+	// CREATE A PAYLOAD TO SEND TO GITHUB-SERVICE
 	payload, err := json.Marshal(candidates{job.JobId, usernames})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -178,6 +183,35 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("client: Profiling Triggered!\n")
-	fmt.Printf("client: status code: %d\n", res.StatusCode)
+	// RESPOND WITH A SUCCESSFUL TRIGGER
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(res.StatusCode)
+	fmt.Fprint(w, "PROFILING TRIGGERED")
+}
+
+func (h TaskHandler) TopCandidates(w http.ResponseWriter, r *http.Request) {
+	values := r.URL.Query()
+	jobId, err := strconv.Atoi(values.Get("jobId"))
+	if err != nil {
+		log.Println("Invalid Job ID")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	topCandidates, err := h.store.ListCandidates(uint(jobId))
+	if err != nil {
+		log.Println("Error fetching the candidates from DB")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	payload, err := json.Marshal(topCandidates)
+	if err != nil {
+		log.Println("Error Marshalling the candidates data")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(payload)
 }

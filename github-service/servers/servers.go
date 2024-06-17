@@ -29,11 +29,11 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(res.Usernames) == 0 {
+		log.Println("No usernames found")
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(len(res.Usernames))
 
 	var candidate models.Candidate
 	// GET EACH CANDIDATE'S DATA FROM GITHUB
@@ -42,6 +42,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 		} else {
+			wg.Add(1)
 			candidate = models.Candidate{
 				JobId:         res.JobID,
 				GithubId:      profile.Data.User.Login,
@@ -61,16 +62,6 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 				}(),
 			}
 
-			// candidate := models.Candidate{
-			// 	JobId:           2,
-			// 	GithubId:        u,
-			// 	Followers:       uint(4 + i), // Added a variable for different scores on redis
-			// 	Contributions:   20,
-			// 	MostPopularRepo: "Test",
-			// 	RepoStars:       200,
-			// 	Status:          false,
-			// }
-
 			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
 			go func(candidate models.Candidate) {
 				defer wg.Done()
@@ -80,12 +71,17 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 			}(candidate)
 
 		}
-
-		wg.Wait()
-		if err = API.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
-			log.Print(err)
-		}
 	}
+
+	wg.Wait()
+	if err = API.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
+		log.Print(err)
+	}
+
+	// SEND A RESPONSE STATING SUCCESSFUL TRIGGER
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "PROFILING TRIGGER")
 }
 
 func HttpServer() {

@@ -96,6 +96,7 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	// Extract the Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
+		log.Println("missing authorization header")
 		http.Error(w, "authorization header required", http.StatusUnauthorized)
 		return
 	}
@@ -103,15 +104,19 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	// Split the header to get the token part
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		log.Println("incorrect authorization header")
 		http.Error(w, "authorization header format must be Bearer {token}", http.StatusUnauthorized)
 		return
 	}
 
 	tokenString := headerParts[1]
 
+	log.Println("TOKEN: ", tokenString)
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// validate the expected alg:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			log.Println("incorrect signing method")
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
@@ -119,20 +124,28 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
-		log.Print(err)
+		log.Println("error while parsing the token: ", err)
+		http.Error(w, "error parsing the token: %s", http.StatusInternalServerError)
+		return
 	}
 
 	log.Println("Debug1")
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 
+		log.Println("Token Claimed")
+
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
+			log.Println("Token Expired")
+
 			http.Error(w, "token expired", http.StatusUnauthorized) //401
 			return
 		}
 
 		recruiter, err := t.store.FindRecruiter(uint(claims["id"].(float64)))
 		if err != nil {
+			log.Println("Invalid Token")
+
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -144,9 +157,14 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, string(payload))
+		w.Write(payload)
 
 	} else {
-		log.Print("Invalid Token")
+		log.Println("error Claiming the token")
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "invalid token")
 	}
+	log.Println("/auth/validate : debug2")
 }
