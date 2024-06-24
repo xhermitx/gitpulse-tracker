@@ -63,7 +63,7 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := json.Unmarshal(data, &credentials); err != nil {
+	if err := json.Unmarshal(data, credentials); err != nil {
 		http.Error(w, "Error reading the request body", http.StatusBadRequest) //400
 		log.Println("Error Unmarshalling the data")
 		return

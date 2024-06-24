@@ -13,6 +13,9 @@ import (
 func Set(profile models.TopCandidates, rdb *redis.Client, ctx context.Context) error {
 
 	totalScore := float64(profile.Followers + profile.RepoStars)
+
+	profile.Score = uint(totalScore)
+
 	// Use the JobID to create a unique key for each job's Sorted Set
 	key := fmt.Sprintf("job:%d:top_candidates", profile.JobId)
 
