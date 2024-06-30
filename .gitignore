@@ -2,3 +2,4 @@
 *.pdf
 /bin
 *.json
+.ENV.DEV

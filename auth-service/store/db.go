@@ -1,6 +1,6 @@
 package store
 
-import "github.com/xhermitx/gitpulse-tracker/auth-service/internal/models"
+import "github.com/xhermitx/gitpulse-tracker/auth-service/models"
 
 type Store interface {
 	CreateRecruiter(Recruiter *models.Recruiter) error

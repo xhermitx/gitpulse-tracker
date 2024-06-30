@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/app/handlers"
-	msql "github.com/xhermitx/gitpulse-tracker/auth-service/internal/store/mysql"
+	"github.com/xhermitx/gitpulse-tracker/auth-service/handlers"
+	msql "github.com/xhermitx/gitpulse-tracker/auth-service/store/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -33,7 +33,7 @@ func handleRequests(handler *handlers.TaskHandler) {
 
 func main() {
 
-	fmt.Println(os.Getenv("DB_SERVER"))
+	fmt.Println("DB SERVER ADDRESS: ", os.Getenv("DB_SERVER"))
 
 	db, err := gorm.Open(mysql.Open(os.Getenv("DB_SERVER")), &gorm.Config{})
 	if err != nil {

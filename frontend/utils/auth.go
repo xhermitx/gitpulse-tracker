@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/xhermitx/gitpulse-tracker/frontend/internal/models"
+	"github.com/xhermitx/gitpulse-tracker/frontend/models"
 )
 
 func Auth(r *http.Request) (*models.Recruiter, error) {

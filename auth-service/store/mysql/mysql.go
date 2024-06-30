@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/app/services"
-	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/models"
+	"github.com/xhermitx/gitpulse-tracker/auth-service/models"
+	"github.com/xhermitx/gitpulse-tracker/auth-service/services"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -31,24 +31,16 @@ func (m *MySQLStore) CreateRecruiter(Recruiter *models.Recruiter) error {
 			if err != nil {
 				return err
 			}
-
 			Recruiter.Password = string(hashedPass)
-
-			//CREATE THE USER
 			res = m.db.Create(Recruiter)
-
 			if res.Error != nil {
 				return res.Error
 			}
-
 			log.Println("Rows Affected: ", res.RowsAffected)
-
 			return nil
 		}
-
 		return res.Error
 	}
-
 	return fmt.Errorf("user already exists")
 }
 

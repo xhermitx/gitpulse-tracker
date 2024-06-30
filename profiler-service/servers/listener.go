@@ -58,14 +58,13 @@ func Listener() {
 
 			rdb := redis.NewClient(&redis.Options{
 				Addr:     os.Getenv("REDIS"),
-				Password: "", // no password set
-				DB:       0,  // use default DB
+				Password: "",
+				DB:       0,
 			})
 
 			ctx := context.Background()
 
 			if !data.Status {
-				// STORE IN REDIS
 				if err := api.Set(data.TopCandidates, rdb, ctx); err != nil {
 					failOnError(err, "Failed to store the candidate on Redis")
 				}

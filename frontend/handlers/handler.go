@@ -10,10 +10,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/xhermitx/gitpulse-tracker/frontend/API"
-	"github.com/xhermitx/gitpulse-tracker/frontend/internal/models"
-	"github.com/xhermitx/gitpulse-tracker/frontend/internal/store"
-	"github.com/xhermitx/gitpulse-tracker/frontend/internal/utils"
+	gdrive "github.com/xhermitx/gitpulse-tracker/frontend/gdrive"
+	"github.com/xhermitx/gitpulse-tracker/frontend/models"
+	"github.com/xhermitx/gitpulse-tracker/frontend/store"
+	"github.com/xhermitx/gitpulse-tracker/frontend/utils"
 )
 
 type TaskHandler struct {
@@ -155,7 +155,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 	log.Println("FolderID: ", folderId)
 
 	// READ FOLDER CONTENTS
-	usernames, err := API.GetDriveDetails(folderId)
+	usernames, err := gdrive.GetDriveDetails(folderId)
 	if err != nil {
 		http.Error(w, "error fetching data from Drive", http.StatusInternalServerError)
 		return

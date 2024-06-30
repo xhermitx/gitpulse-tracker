@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/xhermitx/gitpulse-tracker/frontend/internal/handlers"
-	msql "github.com/xhermitx/gitpulse-tracker/frontend/internal/store/mysql"
+	"github.com/xhermitx/gitpulse-tracker/frontend/handlers"
+	msql "github.com/xhermitx/gitpulse-tracker/frontend/store/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

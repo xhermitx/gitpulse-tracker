@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/xhermitx/gitpulse-tracker/github-service/API"
+	"github.com/xhermitx/gitpulse-tracker/github-service/api"
 	"github.com/xhermitx/gitpulse-tracker/github-service/models"
 )
 
@@ -38,7 +38,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	var candidate models.Candidate
 	// GET EACH CANDIDATE'S DATA FROM GITHUB
 	for _, u := range res.Usernames {
-		profile, err := API.GetUserDetails(u)
+		profile, err := api.GetUserDetails(u)
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -65,7 +65,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
 			go func(candidate models.Candidate) {
 				defer wg.Done()
-				if err = API.Publish(candidate); err != nil {
+				if err = api.Publish(candidate); err != nil {
 					fmt.Print(err)
 				}
 			}(candidate)
@@ -74,7 +74,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wg.Wait()
-	if err = API.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
+	if err = api.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
 		log.Print(err)
 	}
 

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/models"
-	"github.com/xhermitx/gitpulse-tracker/auth-service/internal/store"
+	"github.com/xhermitx/gitpulse-tracker/auth-service/models"
+	"github.com/xhermitx/gitpulse-tracker/auth-service/store"
 )
 
 type TaskHandler struct {

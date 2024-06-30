@@ -5,7 +5,7 @@ RUN mkdir /app
 
 COPY . /app
 
-WORKDIR /app
+WORKDIR /app/cmd
 
 RUN go build -o frontend .
 
@@ -14,7 +14,7 @@ FROM alpine:latest
 
 RUN mkdir /app
 
-COPY --from=builder /app/frontend /app
+COPY --from=builder /app/cmd/frontend /app
 
 # COPY --from=builder /app/.env /app
 
