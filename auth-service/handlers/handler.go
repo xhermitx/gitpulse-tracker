@@ -125,19 +125,14 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Println("error while parsing the token: ", err)
-		http.Error(w, "error parsing the token: %s", http.StatusInternalServerError)
+		http.Error(w, "invalid token: %s", http.StatusUnauthorized)
 		return
 	}
 
-	log.Println("Debug1")
-
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-
-		log.Println("Token Claimed")
 
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
 			log.Println("Token Expired")
-
 			http.Error(w, "token expired", http.StatusUnauthorized) //401
 			return
 		}
@@ -145,7 +140,6 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 		recruiter, err := t.store.FindRecruiter(uint(claims["id"].(float64)))
 		if err != nil {
 			log.Println("Invalid Token")
-
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}

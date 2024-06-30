@@ -11,6 +11,7 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       RABBITMQ: ${RABBITMQ}
       GITHUB_ADDRESS: ${GITHUB_ADDRESS}
+      AUTH_ADDRESS: ${AUTH_ADDRESS}
     depends_on:
       - rabbitmq
       - redis

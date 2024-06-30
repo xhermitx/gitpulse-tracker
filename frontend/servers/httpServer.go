@@ -23,6 +23,8 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 func handleRequests(handler *handlers.TaskHandler) {
 	router := mux.NewRouter().StrictSlash(true)
 
+	//ADD MIDDLEWARE TO HANDLE AUTHENTICATION
+
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/job/create", handler.CreateJob).Methods("POST")
 	router.HandleFunc("/job/delete", handler.DeleteJob).Methods("POST")

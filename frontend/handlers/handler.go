@@ -145,7 +145,6 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		Usernames []string
 	}
 
-	// EXTRACT FOLDER ID FROM URL
 	folderId, err := utils.ExtractFolderID(job.DriveLink)
 	if err != nil {
 		http.Error(w, "invalid drive link", http.StatusBadRequest)
@@ -154,14 +153,12 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("FolderID: ", folderId)
 
-	// READ FOLDER CONTENTS
 	usernames, err := gdrive.GetDriveDetails(folderId)
 	if err != nil {
 		http.Error(w, "error fetching data from Drive", http.StatusInternalServerError)
 		return
 	}
 
-	// CREATE A PAYLOAD TO SEND TO GITHUB-SERVICE
 	payload, err := json.Marshal(candidates{job.JobId, usernames})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -183,7 +180,6 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// RESPOND WITH A SUCCESSFUL TRIGGER
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(res.StatusCode)
 	fmt.Fprint(w, "PROFILING TRIGGERED")

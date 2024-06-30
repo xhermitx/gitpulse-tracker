@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 
@@ -13,6 +14,16 @@ import (
 	"github.com/xhermitx/gitpulse-tracker/github-service/api"
 	"github.com/xhermitx/gitpulse-tracker/github-service/models"
 )
+
+func HttpServer() {
+	router := mux.NewRouter().StrictSlash(true)
+
+	router.Use(authMW)
+
+	router.HandleFunc("/github", FetchData).Methods("POST")
+
+	log.Fatal(http.ListenAndServe(os.Getenv("GITHUB_ADDRESS"), router))
+}
 
 func FetchData(w http.ResponseWriter, r *http.Request) {
 
@@ -84,10 +95,24 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "PROFILING TRIGGER")
 }
 
-func HttpServer() {
-	router := mux.NewRouter().StrictSlash(true)
+func authMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	router.HandleFunc("/github", FetchData).Methods("POST")
+		r.URL = &url.URL{
+			Path: fmt.Sprintf("http://auth-service%s/auth/validate", os.Getenv("AUTH_ADDRESS")),
+		}
 
-	log.Fatal(http.ListenAndServe(os.Getenv("GITHUB_ADDRESS"), router))
+		client := &http.Client{}
+		resp, err := client.Do(r)
+		if err != nil {
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if resp.StatusCode == http.StatusUnauthorized {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
