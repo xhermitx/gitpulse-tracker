@@ -9,7 +9,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	redis "github.com/redis/go-redis/v9"
-	api "github.com/xhermitx/gitpulse-tracker/profiler-service/API"
+	"github.com/xhermitx/gitpulse-tracker/profiler-service/api/redisdb"
 	"github.com/xhermitx/gitpulse-tracker/profiler-service/models"
 	"github.com/xhermitx/gitpulse-tracker/profiler-service/store"
 )
@@ -25,7 +25,6 @@ func Listener() {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	// DECLARE THE QUEUE
 	q, err := ch.QueueDeclare(
 		"github_data_queue", // name
 		false,               // durable
@@ -64,8 +63,10 @@ func Listener() {
 
 			ctx := context.Background()
 
+			client := redisdb.NewRedisClient(rdb)
+
 			if !data.Status {
-				if err := api.Set(data.TopCandidates, rdb, ctx); err != nil {
+				if err := client.Set(ctx, data.TopCandidates); err != nil {
 					failOnError(err, "Failed to store the candidate on Redis")
 				}
 
@@ -74,7 +75,7 @@ func Listener() {
 				fmt.Println("End sequence initiated for : ", data.JobId)
 
 				// RETRIEVE THE TOP 5 CANDIDATES
-				topCandidates, err := api.Get(data.JobId, rdb, ctx)
+				topCandidates, err := client.Get(ctx, data.JobId)
 				if err != nil {
 					failOnError(err, "Failed to Retrieve data from Redis")
 				}

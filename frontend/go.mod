@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/gorilla/mux v1.8.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/api v0.184.0
 	gorm.io/driver/mysql v1.5.7

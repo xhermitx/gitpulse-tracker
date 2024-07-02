@@ -8,10 +8,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 
 	gdrive "github.com/xhermitx/gitpulse-tracker/frontend/gdrive"
 	"github.com/xhermitx/gitpulse-tracker/frontend/models"
+	"github.com/xhermitx/gitpulse-tracker/frontend/queue"
 	"github.com/xhermitx/gitpulse-tracker/frontend/store"
 	"github.com/xhermitx/gitpulse-tracker/frontend/utils"
 )
@@ -112,11 +114,6 @@ func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
-	// GET THE TOKEN AND PASS IT AS A HEADER TO THE GITHUB SERVICE
-	tokenString, err := utils.GetToken(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
 
 	// GET THE JOB ID FROM BODY
 	body, err := io.ReadAll(r.Body)
@@ -131,6 +128,18 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
+	// NOTIFY THE QUEUE THAT THE PROCESS IS INITITIATED
+	data := &models.Status{
+		JobId:  uint(jobId),
+		Status: true,
+	}
+
+	mq := queue.NewRabbitMQClient(data, models.STATUS_QUEUE)
+
+	if err := mq.Publish(); err != nil {
+		log.Println("FAILED TO UPDATE PROFILING STATUS: ", err)
+	}
+
 	job, err := h.store.GetJob(uint(jobId))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -142,7 +151,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		Usernames []string
 	}
 
-	folderId, err := utils.ExtractFolderID(job.DriveLink)
+	folderId, err := extractFolderID(job.DriveLink)
 	if err != nil {
 		http.Error(w, "invalid drive link", http.StatusBadRequest)
 		return
@@ -168,8 +177,6 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "client: could not create request", http.StatusInternalServerError)
 		return
 	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", tokenString))
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -207,4 +214,20 @@ func (h TaskHandler) TopCandidates(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
+}
+
+func extractFolderID(link string) (string, error) {
+
+	pattern := `https://drive\.google\.com/drive/folders/([0-9A-Za-z-_]+)`
+
+	re := regexp.MustCompile(pattern)
+
+	matches := re.FindStringSubmatch(link)
+
+	if len(matches) > 1 {
+		// THE FIRST MATCH IS THE ENTIRE MATCH, AND THE SECOND IS THE CAPTURED GROUP
+		return matches[1], nil
+	}
+
+	return "", fmt.Errorf("folder ID not found in link")
 }

@@ -1,4 +1,4 @@
-package api
+package queue
 
 import (
 	"context"
@@ -10,11 +10,23 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/xhermitx/gitpulse-tracker/github-service/models"
+	"github.com/xhermitx/gitpulse-tracker/frontend/models"
 )
 
+type RabbitMQ struct {
+	Data      any
+	QueueName string
+}
+
+func NewRabbitMQClient(data any, queueName string) *RabbitMQ {
+	return &RabbitMQ{
+		Data:      data,
+		QueueName: queueName,
+	}
+}
+
 // FUNCTION TO PUSH CANDIDATE DATA TO THE MESSAGE QUEUE
-func Publish(data any) error {
+func (mq *RabbitMQ) Publish() error {
 
 	conn, err := connect()
 	failOnError(err, "Failed to connect to RabbitMQ")
@@ -24,9 +36,8 @@ func Publish(data any) error {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	// DECLARE THE QUEUE
 	q, err := ch.QueueDeclare(
-		"github_data_queue", // name
+		models.STATUS_QUEUE, // name
 		false,               // durable
 		false,               // delete when unused
 		false,               // exclusive
@@ -39,33 +50,25 @@ func Publish(data any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body, err := json.Marshal(data)
+	body, err := json.Marshal(mq.Data)
 
-	if candidate, ok := data.(models.Candidate); ok {
-		failOnError(err, fmt.Sprintf("Failed to Parse Github Data for: %s", candidate.GithubId))
-	}
+	failOnError(err, fmt.Sprintf("Failed to Parse Status for: %d", mq.Data.(models.Status).JobId))
 
-	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
+	if err = ch.PublishWithContext(ctx,
+		"",
+		q.Name,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(body),
-		})
-	if err != nil {
-		fmt.Println(err)
+		}); err != nil {
 		return err
 	}
 
-	log.Printf(" [x] Sent %s\n", body)
-
-	// fmt.Println(candidate)
 	return nil
 }
 
-// ERROR HANDLER
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)

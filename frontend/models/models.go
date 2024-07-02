@@ -6,6 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	STATUS_QUEUE   = "profiling_status_queue"
+	USERNAME_QUEUE = "username_queue"
+)
+
 // Recruiter represents a user in the system (recruiter or candidate)
 type Recruiter struct {
 	RecruiterId uint      `gorm:"primary_key;AUTO_INCREMENT"`
@@ -42,6 +47,11 @@ type TopCandidates struct {
 	RepoStars       uint
 	Score           uint
 	JobId           uint `gorm:"not null; unique; index"`
+}
+
+type Status struct {
+	JobId  uint
+	Status bool
 }
 
 // ----------TO BE IMPLEMENTED----------------

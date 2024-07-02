@@ -43,6 +43,7 @@ func (m MySQLStore) CreateJob(Job *models.Job) (*models.Job, error) {
 }
 
 func (m MySQLStore) UpdateJob(Job *models.Job) (*models.Job, error) {
+	// TODO: ADD UPDATE JOB LOGIC
 	return &models.Job{}, nil
 }
 
