@@ -54,7 +54,7 @@ func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 
-	var credentials *models.Credentials
+	var credentials models.Credentials
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -63,13 +63,13 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := json.Unmarshal(data, credentials); err != nil {
+	if err := json.Unmarshal(data, &credentials); err != nil {
 		http.Error(w, "Error reading the request body", http.StatusBadRequest) //400
 		log.Println("Error Unmarshalling the data")
 		return
 	}
 
-	token, err := t.store.AuthenticateRecruiter(credentials)
+	token, err := t.store.AuthenticateRecruiter(&credentials)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized) //401
 		return

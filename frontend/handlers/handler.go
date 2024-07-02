@@ -69,15 +69,12 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var jobId uint
-
-	if err = json.Unmarshal(data, &jobId); err != nil {
-		http.Error(w, "failed to read the body", http.StatusBadRequest) // 400
-		log.Println("error unmarshalling the data")
-		return
+	jobId, err := strconv.Atoi(string(data))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	if err = h.store.DeleteJob(jobId); err != nil {
+	if err = h.store.DeleteJob(uint(jobId)); err != nil {
 		http.Error(w, "Failed to Delete the job Id", http.StatusInternalServerError) // 500
 		return
 	}

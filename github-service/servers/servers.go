@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"sync"
 
@@ -17,8 +16,6 @@ import (
 
 func HttpServer() {
 	router := mux.NewRouter().StrictSlash(true)
-
-	router.Use(authMW)
 
 	router.HandleFunc("/github", FetchData).Methods("POST")
 
@@ -93,26 +90,4 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "PROFILING TRIGGER")
-}
-
-func authMW(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		r.URL = &url.URL{
-			Path: fmt.Sprintf("http://auth-service%s/auth/validate", os.Getenv("AUTH_ADDRESS")),
-		}
-
-		client := &http.Client{}
-		resp, err := client.Do(r)
-		if err != nil {
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		if resp.StatusCode == http.StatusUnauthorized {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }

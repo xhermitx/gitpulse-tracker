@@ -24,8 +24,9 @@ func handleRequests(handler *handlers.TaskHandler) {
 	router := mux.NewRouter().StrictSlash(true)
 
 	//ADD MIDDLEWARE TO HANDLE AUTHENTICATION
+	router.Use(authMW)
 
-	router.HandleFunc("/", homePage)
+	router.HandleFunc("/job", homePage)
 	router.HandleFunc("/job/create", handler.CreateJob).Methods("POST")
 	router.HandleFunc("/job/delete", handler.DeleteJob).Methods("POST")
 	router.HandleFunc("/job/update", handler.UpdateJob).Methods("POST")
@@ -50,4 +51,31 @@ func HttpServer() {
 	taskHandler := handlers.NewTaskHandler(mysqlDB)
 
 	handleRequests(taskHandler)
+}
+
+func authMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := fmt.Sprintf("http://auth-service%s/auth/validate", os.Getenv("AUTH_ADDRESS"))
+
+		req, err := http.NewRequest("POST", path, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		req.Header.Set("Authorization", r.Header.Get("Authorization"))
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if resp.StatusCode == http.StatusUnauthorized {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

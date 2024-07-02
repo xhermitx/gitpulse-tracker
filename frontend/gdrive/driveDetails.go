@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"sync"
+	"time"
 
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -64,7 +65,7 @@ func GetDriveDetails(folderID string) ([]string, error) {
 		go func(f *drive.File) {
 			defer wg.Done()
 			// fmt.Printf("File Name: %s, File ID: %s\n", i.Name, i.Id)
-			file, err := getFileData(f.Id, driveService)
+			file, err := getFileDataWithRetry(f.Id, driveService)
 			if err != nil {
 				log.Print(err)
 			}
@@ -80,6 +81,24 @@ func GetDriveDetails(folderID string) ([]string, error) {
 
 	wg.Wait()
 	return userIDs, nil
+}
+
+func getFileDataWithRetry(fileID string, driveService *drive.Service) ([]byte, error) {
+	var (
+		content []byte
+		err     error
+	)
+
+	for retries := 0; retries < 5; retries++ {
+		content, err = getFileData(fileID, driveService)
+		if err == nil {
+			return content, nil
+		}
+
+		// Exponential backoff
+		time.Sleep(time.Duration(retries) * time.Second)
+	}
+	return nil, err
 }
 
 func getFileData(fileID string, driveService *drive.Service) ([]byte, error) {
@@ -115,14 +134,14 @@ func getUsername(data []byte) ([]string, error) {
 
 	content := string(data)
 
-	pattern := regexp.MustCompile(`https://github\.com/[a-zA-Z0-9]+(\-[a-zA-Z0-9]*)*`)
+	pattern := regexp.MustCompile(`github\.com/[a-zA-Z0-9]+(\-[a-zA-Z0-9]*)*`)
 
 	uniqIDs := make(map[string]bool)
 
 	// Find and print all matches
 	matches := pattern.FindAllString(content, -1)
 	for _, match := range matches {
-		uniqIDs[match[19:]] = true
+		uniqIDs[match[11:]] = true
 	}
 
 	if len(uniqIDs) == 0 {

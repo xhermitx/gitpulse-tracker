@@ -47,6 +47,13 @@ func (m MySQLStore) UpdateJob(Job *models.Job) (*models.Job, error) {
 }
 
 func (m MySQLStore) DeleteJob(JobId uint) error {
+
+	res := m.db.Delete(&models.Job{}, JobId)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	log.Println("Rows Affected: ", res.RowsAffected)
 	return nil
 }
 

@@ -12,6 +12,6 @@ type Recruiter struct {
 }
 
 type Credentials struct {
-	Username string `json: string`
-	Password string `json: string`
+	Username string `json: "username"`
+	Password string `json: "password"`
 }
