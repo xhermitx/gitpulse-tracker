@@ -52,7 +52,7 @@ func (mq *RabbitMQ) Publish() error {
 
 	body, err := json.Marshal(mq.Data)
 
-	failOnError(err, fmt.Sprintf("Failed to Parse Status for: %d", mq.Data.(models.Status).JobId))
+	failOnError(err, fmt.Sprintf("Failed to Parse Status for: %d", mq.Data.(models.StatusQueue).JobId))
 
 	if err = ch.PublishWithContext(ctx,
 		"",
@@ -65,6 +65,8 @@ func (mq *RabbitMQ) Publish() error {
 		}); err != nil {
 		return err
 	}
+
+	log.Printf("\n[x] Sent status for job %d", mq.Data.(models.StatusQueue).JobId)
 
 	return nil
 }
@@ -82,6 +84,8 @@ func connect() (*amqp.Connection, error) {
 		backOff    = 1 * time.Second
 		connection *amqp.Connection
 	)
+
+	log.Println(os.Getenv("RABBITMQ"))
 
 	for {
 		c, err := amqp.Dial(os.Getenv("RABBITMQ"))

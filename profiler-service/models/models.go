@@ -15,3 +15,14 @@ type TopCandidates struct {
 	Score           uint
 	JobId           uint `gorm:"not null; unique; index"`
 }
+
+var (
+	STATUS_QUEUE      = "profiling_status_queue"
+	USERNAME_QUEUE    = "username_queue"
+	GITHUB_DATA_QUEUE = "github_data_queue"
+)
+
+type StatusQueue struct {
+	JobId  uint
+	Status bool
+}

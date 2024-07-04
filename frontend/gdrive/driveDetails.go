@@ -73,6 +73,10 @@ func GetDriveDetails(folderID string) ([]string, error) {
 			if err != nil {
 				log.Print(err)
 			}
+
+			log.Printf("\nFetched the following IDs from file %s : ", f.Name)
+			log.Println(res)
+
 			lock.Lock()
 			userIDs = append(userIDs, res...)
 			lock.Unlock()

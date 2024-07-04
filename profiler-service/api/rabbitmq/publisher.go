@@ -1,4 +1,4 @@
-package api
+package rabbitmq
 
 import (
 	"context"
@@ -12,64 +12,51 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// FUNCTION TO PUSH CANDIDATE DATA TO THE MESSAGE QUEUE
-func Publish(data any) error {
+type RedisClient struct {
+	conn *amqp.Connection
+}
 
-	conn, err := connect()
-	if err != nil {
-		return err
+func NewRedisClient(connection *amqp.Connection) *RedisClient {
+	return &RedisClient{
+		conn: connection,
 	}
-	defer conn.Close()
+}
 
-	ch, err := conn.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
+func (client *RedisClient) Publish(data any, queueName string) error {
 
-	// DECLARE THE QUEUE
+	ch, err := client.conn.Channel()
+	failOnError(err, "failed to open a channel")
+
 	q, err := ch.QueueDeclare(
-		"github_data_queue", // name
-		false,               // durable
-		false,               // delete when unused
-		false,               // exclusive
-		false,               // no-wait
-		nil,                 // arguments
+		queueName,
+		false,
+		false,
+		false,
+		false,
+		nil,
 	)
-	if err != nil {
-		return err
-	}
-
+	failOnError(err, "failed to declare the queue")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	body, err := json.Marshal(data)
-	if err != nil {
-		log.Println("failed to marshal data")
-		return err
-	}
+	failOnError(err, err.Error())
 
 	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
+		"",
+		q.Name,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(body),
 		})
-	if err != nil {
-		log.Println("failed to publish data to queue")
-		return err
-	}
-
-	log.Printf(" [x] Sent %s\n", body)
+	failOnError(err, "failed to publish data")
 
 	return nil
 }
 
-// RETRY CONNECTION WITH EXPONENTIAL TIMEOUT
-func connect() (*amqp.Connection, error) {
+func Connect() (*amqp.Connection, error) {
 	var (
 		counts     int64
 		backOff    = 1 * time.Second
@@ -88,7 +75,7 @@ func connect() (*amqp.Connection, error) {
 		}
 
 		if counts > 5 {
-			fmt.Println(err)
+			log.Println(err)
 			return nil, err
 		}
 
@@ -99,4 +86,10 @@ func connect() (*amqp.Connection, error) {
 	}
 
 	return connection, nil
+}
+
+func failOnError(err error, msg string) {
+	if err != nil {
+		fmt.Printf("\n%s: %s", msg, err)
+	}
 }

@@ -56,6 +56,7 @@ services:
       AUTH_ADDRESS: ${AUTH_ADDRESS}
       GITHUB_ADDRESS: ${GITHUB_ADDRESS}
       CREDENTIALS_JSON: ${CREDENTIALS_JSON}
+      RABBITMQ: ${RABBITMQ}
     ports:
       - "3000:3000"
     volumes:
@@ -89,6 +90,18 @@ services:
     volumes:
       - db-store:/var/lib/mysql
     command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
+
+  logger:
+    build:
+      context: ./logger
+      dockerfile: ./logger.dockerfile
+    restart: always
+    environment:
+      RABBITMQ: ${RABBITMQ}
+    volumes:
+      - ./logs.md:/logs/logs.md
+    depends_on:
+      - rabbitmq
 
 volumes:
 

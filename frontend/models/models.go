@@ -49,7 +49,7 @@ type TopCandidates struct {
 	JobId           uint `gorm:"not null; unique; index"`
 }
 
-type Status struct {
+type StatusQueue struct {
 	JobId  uint
 	Status bool
 }

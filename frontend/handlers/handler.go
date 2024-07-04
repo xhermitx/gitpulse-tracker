@@ -43,19 +43,17 @@ func (h TaskHandler) CreateJob(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	job, err := h.store.CreateJob(&Job)
+	_, err = h.store.CreateJob(&Job)
 	if err != nil {
 		http.Error(w, "Failed to create the Job", http.StatusInternalServerError) // 400
 		return
 	}
 
-	log.Println(job)
-
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 	w.WriteHeader(http.StatusCreated) // 201
 
-	fmt.Fprintf(w, "Job Created Successfully")
+	fmt.Fprintf(w, "Job ID: %d -> Created Successfully", Job.JobId)
 }
 
 func (h TaskHandler) UpdateJob(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +96,7 @@ func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
 
 	jobs, err := h.store.ListJobs(recruiter.RecruiterId)
 	if err != nil {
-		http.Error(w, "Failed to Delete the job Id", http.StatusInternalServerError) // 500
+		http.Error(w, "failed to delete the job Id", http.StatusInternalServerError) // 500
 		return
 	}
 
@@ -118,7 +116,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 	// GET THE JOB ID FROM BODY
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to read the body", http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -126,10 +124,11 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 	jobId, err := strconv.Atoi(string(body))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// NOTIFY THE QUEUE THAT THE PROCESS IS INITITIATED
-	data := &models.Status{
+	data := models.StatusQueue{
 		JobId:  uint(jobId),
 		Status: true,
 	}
@@ -137,7 +136,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 	mq := queue.NewRabbitMQClient(data, models.STATUS_QUEUE)
 
 	if err := mq.Publish(); err != nil {
-		log.Println("FAILED TO UPDATE PROFILING STATUS: ", err)
+		log.Printf("\nfailed to update the profiling status for Job %d: %v", data.JobId, err)
 	}
 
 	job, err := h.store.GetJob(uint(jobId))
@@ -195,6 +194,7 @@ func (h TaskHandler) TopCandidates(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("Invalid Job ID")
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	topCandidates, err := h.store.ListCandidates(uint(jobId))

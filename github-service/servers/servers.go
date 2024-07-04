@@ -27,6 +27,7 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
+		return
 	}
 	defer r.Body.Close()
 
@@ -34,17 +35,22 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 
 	if err = json.Unmarshal(reqBody, &res); err != nil {
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
+		return
 	}
 
 	if len(res.Usernames) == 0 {
 		log.Println("No usernames found")
 		http.Error(w, "Error processing the request", http.StatusBadRequest)
+		return
 	}
+
+	log.Printf("\nUsernames for Job %d: %s", res.JobID, res.Usernames)
 
 	wg := sync.WaitGroup{}
 
 	var candidate models.Candidate
 	// GET EACH CANDIDATE'S DATA FROM GITHUB
+
 	for _, u := range res.Usernames {
 		profile, err := api.GetUserDetails(u)
 		if err != nil {
@@ -70,11 +76,13 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 				}(),
 			}
 
+			log.Println("Github ID: ", candidate.GithubId)
+
 			// CREATE A GO ROUTINE FOR EACH PUBLISH ON THE QUEUE
 			go func(candidate models.Candidate) {
 				defer wg.Done()
 				if err = api.Publish(candidate); err != nil {
-					fmt.Print(err)
+					log.Println("error publishing the data for candidate: ", candidate.CandidateId)
 				}
 			}(candidate)
 
@@ -83,7 +91,8 @@ func FetchData(w http.ResponseWriter, r *http.Request) {
 
 	wg.Wait()
 	if err = api.Publish(models.Candidate{JobId: candidate.JobId, Status: true}); err != nil {
-		log.Print(err)
+		log.Print("error publishing the github_queue status", err)
+		return
 	}
 
 	// SEND A RESPONSE STATING SUCCESSFUL TRIGGER
