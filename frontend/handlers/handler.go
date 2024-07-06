@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 
 	gdrive "github.com/xhermitx/gitpulse-tracker/frontend/gdrive"
 	"github.com/xhermitx/gitpulse-tracker/frontend/models"
@@ -131,6 +132,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 	data := models.StatusQueue{
 		JobId:  uint(jobId),
 		Status: true,
+		Timer:  time.Now(),
 	}
 
 	mq := queue.NewRabbitMQClient(data, models.STATUS_QUEUE)

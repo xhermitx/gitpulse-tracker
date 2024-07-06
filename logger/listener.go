@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -18,6 +19,7 @@ var (
 type StatusQueue struct {
 	JobId  uint
 	Status bool
+	Timer  time.Time
 }
 
 func Listener() {
@@ -32,9 +34,12 @@ func Listener() {
 	defer ch.Close()
 
 	msgs := createChannel(ch)
-	logError(err, "error creating a channel")
 
-	forever := make(chan struct{})
+	var mutex sync.RWMutex
+
+	f, err := os.OpenFile("logs.md", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0777)
+	logError(err, "failed to open the logs")
+	defer f.Close()
 
 	go func() {
 		for d := range msgs {
@@ -42,26 +47,23 @@ func Listener() {
 			err := json.Unmarshal(d.Body, &data)
 			logError(err, "failed to unmarshal queue data")
 
-			var timer time.Time
-
 			if data.Status {
-				timer = time.Now()
-				_ = timer // To handle the warning. Timer is used for tracking initial and final queue status
-			} else {
-				totalTime := time.Since(timer)
-
-				f, err := os.OpenFile("logs.md", os.O_CREATE|os.O_APPEND, 0777)
-				logError(err, "failed to open the logs")
-
-				content := fmt.Sprintf("Total time taken for the synchronous handling of Drive Data for jobId: %d : %f", data.JobId, totalTime.Seconds())
+				content := fmt.Sprintf("\n\nStart time for the synchronous handling of Drive Data for jobId: %d : %v", data.JobId, data.Timer)
+				mutex.Lock()
 				f.WriteString(content)
-				f.Close()
+				mutex.Unlock()
+			} else {
+				content := fmt.Sprintf("\nTotal time taken for the synchronous handling of Drive Data for jobId: %d : %f", data.JobId, time.Since(data.Timer).Seconds())
+				log.Println(content)
+				mutex.Lock()
+				f.WriteString(content)
+				mutex.Unlock()
 			}
 		}
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+	select {}
 }
 
 func createChannel(ch *amqp.Channel) <-chan amqp.Delivery {

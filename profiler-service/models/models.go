@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Candidate struct {
 	TopCandidates
 	Status bool
@@ -25,4 +27,5 @@ var (
 type StatusQueue struct {
 	JobId  uint
 	Status bool
+	Timer  time.Time
 }

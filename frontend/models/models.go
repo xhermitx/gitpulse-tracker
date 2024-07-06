@@ -52,6 +52,7 @@ type TopCandidates struct {
 type StatusQueue struct {
 	JobId  uint
 	Status bool
+	Timer  time.Time
 }
 
 // ----------TO BE IMPLEMENTED----------------

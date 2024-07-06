@@ -12,16 +12,20 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// FUNCTION TO PUSH CANDIDATE DATA TO THE MESSAGE QUEUE
-func Publish(data any) error {
+type Client struct {
+	conn *amqp.Connection
+}
 
-	conn, err := connect()
-	if err != nil {
-		return err
+func NewQueueConnection(conn *amqp.Connection) *Client {
+	return &Client{
+		conn: conn,
 	}
-	defer conn.Close()
+}
 
-	ch, err := conn.Channel()
+// FUNCTION TO PUSH CANDIDATE DATA TO THE MESSAGE QUEUE
+func (cq Client) Publish(queueName string, data any) error {
+
+	ch, err := cq.conn.Channel()
 	if err != nil {
 		return err
 	}
@@ -29,12 +33,12 @@ func Publish(data any) error {
 
 	// DECLARE THE QUEUE
 	q, err := ch.QueueDeclare(
-		"github_data_queue", // name
-		false,               // durable
-		false,               // delete when unused
-		false,               // exclusive
-		false,               // no-wait
-		nil,                 // arguments
+		queueName, // name
+		false,     // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
 	)
 	if err != nil {
 		return err
@@ -69,7 +73,7 @@ func Publish(data any) error {
 }
 
 // RETRY CONNECTION WITH EXPONENTIAL TIMEOUT
-func connect() (*amqp.Connection, error) {
+func Connect() (*amqp.Connection, error) {
 	var (
 		counts     int64
 		backOff    = 1 * time.Second

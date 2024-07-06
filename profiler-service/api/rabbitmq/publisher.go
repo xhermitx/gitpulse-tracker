@@ -12,20 +12,23 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type RedisClient struct {
+type RabbitClient struct {
 	conn *amqp.Connection
 }
 
-func NewRedisClient(connection *amqp.Connection) *RedisClient {
-	return &RedisClient{
+func NewRabbitClient(connection *amqp.Connection) *RabbitClient {
+	return &RabbitClient{
 		conn: connection,
 	}
 }
 
-func (client *RedisClient) Publish(data any, queueName string) error {
+func (client *RabbitClient) Publish(data any, queueName string) error {
 
 	ch, err := client.conn.Channel()
-	failOnError(err, "failed to open a channel")
+	if err != nil {
+		log.Println("failed to create channel")
+		return err
+	}
 
 	q, err := ch.QueueDeclare(
 		queueName,
@@ -35,14 +38,24 @@ func (client *RedisClient) Publish(data any, queueName string) error {
 		false,
 		nil,
 	)
-	failOnError(err, "failed to declare the queue")
+	if err != nil {
+		log.Println("failed to declare queue")
+		return err
+	}
+
+	var timer time.Time
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx = context.WithValue(ctx, timer, time.Now())
 	defer cancel()
 
 	body, err := json.Marshal(data)
-	failOnError(err, err.Error())
+	if err != nil {
+		log.Println("failed to marshal data")
+		return err
+	}
 
-	err = ch.PublishWithContext(ctx,
+	if err = ch.PublishWithContext(ctx,
 		"",
 		q.Name,
 		false,
@@ -50,9 +63,12 @@ func (client *RedisClient) Publish(data any, queueName string) error {
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(body),
-		})
-	failOnError(err, "failed to publish data")
+		}); err != nil {
+		log.Println("failed to publish data")
+		return err
+	}
 
+	log.Println("DATA PUBLISHED !")
 	return nil
 }
 
@@ -86,10 +102,4 @@ func Connect() (*amqp.Connection, error) {
 	}
 
 	return connection, nil
-}
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		fmt.Printf("\n%s: %s", msg, err)
-	}
 }
