@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	redis "github.com/redis/go-redis/v9"
@@ -85,6 +86,7 @@ func HandleQueueData(msgs <-chan amqp.Delivery) {
 				status := models.StatusQueue{
 					JobId:  data.TopCandidates.JobId,
 					Status: false,
+					Timer:  time.Now(),
 				}
 				err = rmqClient.Publish(status, models.STATUS_QUEUE)
 				LogError(err, "failed to update profiling status on queue")

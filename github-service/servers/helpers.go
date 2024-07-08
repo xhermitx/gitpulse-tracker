@@ -53,7 +53,6 @@ func ProcessUsername(res models.Job, client *api.Client, wg *sync.WaitGroup, w h
 					log.Println("error publishing the data for candidate: ", candidate.GithubId)
 				}
 			}(candidate)
-
 		}
 	}
 

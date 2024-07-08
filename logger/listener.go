@@ -48,12 +48,18 @@ func Listener() {
 			logError(err, "failed to unmarshal queue data")
 
 			if data.Status {
-				content := fmt.Sprintf("\n\nStart time for the synchronous handling of Drive Data for jobId: %d : %v", data.JobId, data.Timer)
+
+				hour, min, sec := data.Timer.Clock()
+				time := fmt.Sprintf("(%d : %d : %d)", hour, min, sec)
+				content := fmt.Sprintf("\n\nStart time for the synchronous handling of Drive Data for jobId: %d : %s", data.JobId, time)
+				log.Println(content)
 				mutex.Lock()
 				f.WriteString(content)
 				mutex.Unlock()
 			} else {
-				content := fmt.Sprintf("\nTotal time taken for the synchronous handling of Drive Data for jobId: %d : %f", data.JobId, time.Since(data.Timer).Seconds())
+				hour, min, sec := data.Timer.Clock()
+				time := fmt.Sprintf("(%d : %d : %d)", hour, min, sec)
+				content := fmt.Sprintf("\nEnd time taken for the synchronous handling of Drive Data for jobId: %d : %s", data.JobId, time)
 				log.Println(content)
 				mutex.Lock()
 				f.WriteString(content)
