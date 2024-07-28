@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/xhermitx/gitpulse-tracker/frontend/models"
+	"github.com/xhermitx/gitpulse-tracker/backend/internal/models"
 )
 
 func Auth(r *http.Request) (*models.Recruiter, error) {
@@ -36,9 +36,6 @@ func Auth(r *http.Request) (*models.Recruiter, error) {
 		fmt.Printf("client: error making http request: %s\n", err)
 		return nil, err
 	}
-
-	fmt.Printf("client: got response!\n")
-	fmt.Printf("client: status code: %d\n", res.StatusCode)
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {

@@ -1,6 +1,6 @@
 package store
 
-import "github.com/xhermitx/gitpulse-tracker/frontend/models"
+import "github.com/xhermitx/gitpulse-tracker/backend/internal/models"
 
 type Store interface {
 	CreateJob(Job *models.Job) (*models.Job, error)

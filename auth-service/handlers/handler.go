@@ -93,23 +93,11 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 
-	// Extract the Authorization header
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		log.Println("missing authorization header")
-		http.Error(w, "authorization header required", http.StatusUnauthorized)
+	tokenString, err := getToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	// Split the header to get the token part
-	headerParts := strings.Split(authHeader, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-		log.Println("incorrect authorization header")
-		http.Error(w, "authorization header format must be Bearer {token}", http.StatusUnauthorized)
-		return
-	}
-
-	tokenString := headerParts[1]
 
 	log.Println("TOKEN: ", tokenString)
 
@@ -120,7 +108,6 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(os.Getenv("SECRET")), nil
 	})
 	if err != nil {
@@ -161,4 +148,22 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "invalid token")
 	}
 	log.Println("/auth/validate : debug2")
+}
+
+func getToken(r *http.Request) (string, error) {
+	// Extract the Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		log.Println("missing authorization header")
+		return "", fmt.Errorf("authorization header missing")
+	}
+
+	// Split the header to get the token part
+	headerParts := strings.Split(authHeader, " ")
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		log.Println("incorrect authorization header")
+		return "", fmt.Errorf("authorization header format must be Bearer {token}")
+	}
+
+	return headerParts[1], nil
 }

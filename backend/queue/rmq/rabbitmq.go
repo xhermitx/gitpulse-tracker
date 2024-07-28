@@ -1,4 +1,4 @@
-package queue
+package rmq
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/xhermitx/gitpulse-tracker/frontend/models"
+	"github.com/xhermitx/gitpulse-tracker/backend/internal/models"
 )
 
 type RabbitMQ struct {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/xhermitx/gitpulse-tracker/frontend/models"
+	"github.com/xhermitx/gitpulse-tracker/backend/internal/models"
 	"gorm.io/gorm"
 )
 

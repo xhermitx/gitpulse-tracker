@@ -45,14 +45,14 @@ services:
     depends_on:
       - db
   
-  frontend:
+  backend:
     build:
-      context: ./frontend
-      dockerfile: ./frontend.dockerfile
+      context: ./backend
+      dockerfile: ./backend.dockerfile
     restart: always
     environment:
       DB_SERVER: ${DB_SERVER}
-      FRONTEND_ADDRESS: ${FRONTEND_ADDRESS}
+      BACKEND_ADDRESS: ${BACKEND_ADDRESS}
       AUTH_ADDRESS: ${AUTH_ADDRESS}
       GITHUB_ADDRESS: ${GITHUB_ADDRESS}
       CREDENTIALS_JSON: ${CREDENTIALS_JSON}

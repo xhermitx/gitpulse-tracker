@@ -19,7 +19,7 @@ func GetDriveDetails(folderID string) ([]string, error) {
 
 	ctx := context.Background()
 
-	// Read the service account key file
+	// SERVICE ACCOUNT FILE
 	log.Println(os.Getenv("CREDENTIALS_JSON"))
 
 	data, err := os.ReadFile(os.Getenv("CREDENTIALS_JSON"))
@@ -60,11 +60,9 @@ func GetDriveDetails(folderID string) ([]string, error) {
 	var userIDs []string
 
 	wg.Add(len(fileList.Files))
-	// Print the names and IDs of the files
 	for _, f := range fileList.Files {
 		go func(f *drive.File) {
 			defer wg.Done()
-			// fmt.Printf("File Name: %s, File ID: %s\n", i.Name, i.Id)
 			file, err := getFileDataWithRetry(f.Id, driveService)
 			if err != nil {
 				log.Print(err)
@@ -99,7 +97,7 @@ func getFileDataWithRetry(fileID string, driveService *drive.Service) ([]byte, e
 			return content, nil
 		}
 
-		// Exponential backoff
+		// EXPONENTIAL BACKOFF
 		time.Sleep(time.Duration(retries) * time.Second)
 	}
 	return nil, err
@@ -107,25 +105,22 @@ func getFileDataWithRetry(fileID string, driveService *drive.Service) ([]byte, e
 
 func getFileData(fileID string, driveService *drive.Service) ([]byte, error) {
 
-	// Get the file's metadata to verify it's a PDF
 	file, err := driveService.Files.Get(fileID).Fields("mimeType").Do()
 	if err != nil {
 		return nil, err
 	}
 
-	// Only proceed if the file is a PDF
+	// VERIFY FILE TYPE AS PDF
 	if file.MimeType != "application/pdf" {
 		return nil, err
 	}
 
-	// GET THE FILE'S CONTENT
 	resp, err := driveService.Files.Get(fileID).Download()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	// Read the file content
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -142,7 +137,6 @@ func getUsername(data []byte) ([]string, error) {
 
 	uniqIDs := make(map[string]bool)
 
-	// Find and print all matches
 	matches := pattern.FindAllString(content, -1)
 	for _, match := range matches {
 		uniqIDs[match[11:]] = true

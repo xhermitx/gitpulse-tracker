@@ -1,4 +1,4 @@
-module github.com/xhermitx/gitpulse-tracker/frontend
+module github.com/xhermitx/gitpulse-tracker/backend
 
 go 1.22.2
 

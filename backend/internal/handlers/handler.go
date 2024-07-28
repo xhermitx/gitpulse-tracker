@@ -12,11 +12,11 @@ import (
 	"strconv"
 	"time"
 
-	gdrive "github.com/xhermitx/gitpulse-tracker/frontend/gdrive"
-	"github.com/xhermitx/gitpulse-tracker/frontend/models"
-	"github.com/xhermitx/gitpulse-tracker/frontend/queue"
-	"github.com/xhermitx/gitpulse-tracker/frontend/store"
-	"github.com/xhermitx/gitpulse-tracker/frontend/utils"
+	gdrive "github.com/xhermitx/gitpulse-tracker/backend/gdrive"
+	"github.com/xhermitx/gitpulse-tracker/backend/internal/models"
+	"github.com/xhermitx/gitpulse-tracker/backend/queue/rmq"
+	"github.com/xhermitx/gitpulse-tracker/backend/store"
+	"github.com/xhermitx/gitpulse-tracker/backend/utils"
 )
 
 type TaskHandler struct {
@@ -135,7 +135,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 		Timer:  time.Now(),
 	}
 
-	mq := queue.NewRabbitMQClient(data, models.STATUS_QUEUE)
+	mq := rmq.NewRabbitMQClient(data, models.STATUS_QUEUE)
 
 	if err := mq.Publish(); err != nil {
 		log.Printf("\nfailed to update the profiling status for Job %d: %v", data.JobId, err)
