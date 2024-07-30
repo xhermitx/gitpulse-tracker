@@ -19,6 +19,13 @@ import (
 	"github.com/xhermitx/gitpulse-tracker/backend/utils"
 )
 
+var (
+	ErrNotFound     = &models.APIError{StatusCode: http.StatusNotFound, Message: "Resource not found"}
+	ErrBadRequest   = &models.APIError{StatusCode: http.StatusBadRequest, Message: "Bad request"}
+	ErrUnauthorized = &models.APIError{StatusCode: http.StatusUnauthorized, Message: "Unauthorized"}
+	ErrInternal     = &models.APIError{StatusCode: http.StatusInternalServerError, Message: "Internal Server Error"}
+)
+
 type TaskHandler struct {
 	store store.Store
 }
@@ -27,27 +34,24 @@ func NewTaskHandler(s store.Store) *TaskHandler {
 	return &TaskHandler{store: s}
 }
 
-func (h TaskHandler) CreateJob(w http.ResponseWriter, r *http.Request) {
+func (h TaskHandler) CreateJob(w http.ResponseWriter, r *http.Request) error {
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) // 400
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	var Job models.Job
 	if err := json.Unmarshal(data, &Job); err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) // 400
 		log.Println("Error Unmarshalling the data")
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	_, err = h.store.CreateJob(&Job)
 	if err != nil {
-		http.Error(w, "Failed to create the Job", http.StatusInternalServerError) // 400
-		return
+		return err
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -55,29 +59,24 @@ func (h TaskHandler) CreateJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated) // 201
 
 	fmt.Fprintf(w, "Job ID: %d -> Created Successfully", Job.JobId)
+
+	return nil
 }
 
-func (h TaskHandler) UpdateJob(w http.ResponseWriter, r *http.Request) {
-	// TO BE IMPLEMENTED
-	http.Error(w, "Failed to Update the Job", http.StatusNotImplemented) //501
-}
-
-func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
+func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) error {
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "failed to read the body", http.StatusBadRequest) // 400
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	jobId, err := strconv.Atoi(string(data))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		return ErrBadRequest
 	}
 
 	if err = h.store.DeleteJob(uint(jobId)); err != nil {
-		http.Error(w, "Failed to Delete the job Id", http.StatusInternalServerError) // 500
-		return
+		return err
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -85,47 +84,39 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	fmt.Fprintf(w, "Job Deleted Successfully")
+
+	return nil
 }
 
-func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) {
+func (h TaskHandler) ListJobs(w http.ResponseWriter, r *http.Request) error {
 	// VALIDATE THE TOKEN TO GET A RECRUITER INFORMATION
 	recruiter, err := utils.Auth(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		return ErrUnauthorized
 	}
 
 	jobs, err := h.store.ListJobs(recruiter.RecruiterId)
 	if err != nil {
-		http.Error(w, "failed to delete the job Id", http.StatusInternalServerError) // 500
-		return
+		return err
 	}
 
 	res_data, err := json.Marshal(jobs)
 	if err != nil {
-		http.Error(w, "failed to get the job list", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res_data)
+
+	return nil
 }
 
-func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
+func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) error {
 
-	// GET THE JOB ID FROM BODY
-	body, err := io.ReadAll(r.Body)
+	jobId, err := getID(r)
 	if err != nil {
-		http.Error(w, "failed to read the body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	jobId, err := strconv.Atoi(string(body))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return ErrBadRequest
 	}
 
 	// NOTIFY THE QUEUE THAT THE PROCESS IS INITITIATED
@@ -143,8 +134,7 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 
 	job, err := h.store.GetJob(uint(jobId))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	type candidates struct {
@@ -154,68 +144,69 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) {
 
 	folderId, err := extractFolderID(job.DriveLink)
 	if err != nil {
-		http.Error(w, "invalid drive link", http.StatusBadRequest)
-		return
+		return ErrBadRequest
 	}
 
 	log.Println("FolderID: ", folderId)
 
 	usernames, err := gdrive.GetDriveDetails(folderId)
 	if err != nil {
-		http.Error(w, "error fetching data from Drive", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	payload, err := json.Marshal(candidates{job.JobId, usernames})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	requestURL := fmt.Sprintf("http://github-service%s/github", os.Getenv("GITHUB_ADDRESS"))
 	req, err := http.NewRequest(http.MethodPost, requestURL, bytes.NewBuffer(payload))
 	if err != nil {
-		http.Error(w, "client: could not create request", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		http.Error(w, "client: error making request", http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(res.StatusCode)
 	fmt.Fprint(w, "PROFILING TRIGGERED")
+
+	return nil
 }
 
-func (h TaskHandler) TopCandidates(w http.ResponseWriter, r *http.Request) {
+func (h TaskHandler) TopCandidates(w http.ResponseWriter, r *http.Request) error {
 	values := r.URL.Query()
 	jobId, err := strconv.Atoi(values.Get("jobId"))
 	if err != nil {
 		log.Println("Invalid Job ID")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return ErrBadRequest
 	}
 
 	topCandidates, err := h.store.ListCandidates(uint(jobId))
 	if err != nil {
 		log.Println("Error fetching the candidates from DB")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return ErrNotFound
 	}
 
 	payload, err := json.Marshal(topCandidates)
 	if err != nil {
 		log.Println("Error Marshalling the candidates data")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
+
+	return nil
+}
+
+func (h TaskHandler) UpdateJob(w http.ResponseWriter, r *http.Request) error {
+	// TO BE IMPLEMENTED
+	return models.NewAPIError(http.StatusNotImplemented, "Endpoint not available")
 }
 
 func extractFolderID(link string) (string, error) {
@@ -232,4 +223,14 @@ func extractFolderID(link string) (string, error) {
 	}
 
 	return "", fmt.Errorf("folder ID not found in link")
+}
+
+func getID(r *http.Request) (int, error) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return 0, err
+	}
+	defer r.Body.Close()
+
+	return strconv.Atoi(string(body))
 }

@@ -20,8 +20,6 @@ func Auth(r *http.Request) (*models.Recruiter, error) {
 		return nil, err
 	}
 
-	fmt.Println("AUTH ADDRESS: ", os.Getenv("AUTH_ADDRESS"))
-
 	requestURL := fmt.Sprintf("http://auth-service%s/auth/validate", os.Getenv("AUTH_ADDRESS"))
 	req, err := http.NewRequest(http.MethodPost, requestURL, nil)
 	if err != nil {

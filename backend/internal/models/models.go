@@ -11,7 +11,6 @@ var (
 	USERNAME_QUEUE = "username_queue"
 )
 
-// Recruiter represents a user in the system (recruiter or candidate)
 type Recruiter struct {
 	RecruiterId uint      `gorm:"primary_key;AUTO_INCREMENT"`
 	Username    string    `gorm:"unique, not null"`
@@ -21,7 +20,6 @@ type Recruiter struct {
 	CreatedAt   time.Time `gorm:"type:datetime"`
 }
 
-// Job represents a job posting by a recruiter
 type Job struct {
 	JobId       uint      `json:"job_id" gorm:"primaryKey;autoIncrement"`
 	JobName     string    `json:"job_name" gorm:"not null"`
@@ -31,13 +29,11 @@ type Job struct {
 	RecruiterId uint      `json:"recruiter_id" gorm:"not null"`
 }
 
-// Candidates List
 type CandidatesList struct {
 	JobId    uint   `gorm:"not null"`
 	GithubId string `gorm:"not null"`
 }
 
-// Top Candidates Data
 type TopCandidates struct {
 	CandidateId     uint   `gorm:"not null; unique"`
 	GithubId        string `gorm:"size: 255;not null"`
@@ -56,15 +52,12 @@ type StatusQueue struct {
 }
 
 // ----------TO BE IMPLEMENTED----------------
-
-// AuthToken represents an authentication token for a user
 type AuthToken struct {
 	RecruiterId uint   `gorm:"not null;index"`
 	AuthToken   string `gorm:"size:255;not null;unique"`
 	ExpiresAt   time.Time
 }
 
-// PasswordReset represents a password reset token for a user
 type PasswordReset struct {
 	gorm.Model
 	RecruiterId uint   `gorm:"not null;index"`

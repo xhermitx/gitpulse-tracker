@@ -42,11 +42,6 @@ func (m MySQLStore) CreateJob(Job *models.Job) (*models.Job, error) {
 	return nil, fmt.Errorf("job name already exists")
 }
 
-func (m MySQLStore) UpdateJob(Job *models.Job) (*models.Job, error) {
-	// TODO: ADD UPDATE JOB LOGIC
-	return &models.Job{}, nil
-}
-
 func (m MySQLStore) DeleteJob(JobId uint) error {
 
 	res := m.db.Delete(&models.Job{}, JobId)
@@ -92,4 +87,9 @@ func (m MySQLStore) ListCandidates(JobId uint) ([]*models.TopCandidates, error) 
 	}
 
 	return topCandidates, nil
+}
+
+func (m MySQLStore) UpdateJob(Job *models.Job) (*models.Job, error) {
+	// TODO: ADD UPDATE JOB LOGIC
+	return &models.Job{}, nil
 }

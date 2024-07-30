@@ -1,6 +1,8 @@
 package servers
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,15 +10,34 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/xhermitx/gitpulse-tracker/backend/internal/handlers"
+	"github.com/xhermitx/gitpulse-tracker/backend/internal/models"
 	msql "github.com/xhermitx/gitpulse-tracker/backend/store/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-// DEFINE THE HOME PAGE
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "This is the home Page")
-	fmt.Println("Endpoint hit: homepage")
+type Handler func(w http.ResponseWriter, r *http.Request) error
+
+func wrapper(h Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := h(w, r)
+		handleError(w, err)
+	}
+}
+
+func handleError(w http.ResponseWriter, err error) {
+	var apiErr *models.APIError
+
+	if !errors.As(err, apiErr) {
+		apiErr = handlers.ErrInternal
+		log.Printf("\nInternal server error %v", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(apiErr.StatusCode)
+
+	json.NewEncoder(w).Encode(apiErr)
 }
 
 // HANDLE THE ROUTES
@@ -26,16 +47,17 @@ func handleRequests(handler *handlers.TaskHandler) {
 	//ADD MIDDLEWARE TO HANDLE AUTHENTICATION
 	router.Use(authMW)
 
-	router.HandleFunc("/job", homePage)
-	router.HandleFunc("/job/create", handler.CreateJob).Methods("POST")
-	router.HandleFunc("/job/delete", handler.DeleteJob).Methods("POST")
-	router.HandleFunc("/job/update", handler.UpdateJob).Methods("POST")
-	router.HandleFunc("/job/list", handler.ListJobs).Methods("GET")
-	router.HandleFunc("/job/trigger", handler.Trigger).Methods("POST")
-	router.HandleFunc("/job/candidates", handler.TopCandidates).Methods("GET") // ?jobId=x
+	jobRouter := router.PathPrefix("/job").Subrouter()
+
+	jobRouter.HandleFunc("/create", wrapper(handler.CreateJob)).Methods("POST")
+	jobRouter.HandleFunc("/delete", wrapper(handler.DeleteJob)).Methods("POST")
+	jobRouter.HandleFunc("/update", wrapper(handler.UpdateJob)).Methods("POST")
+	jobRouter.HandleFunc("/list", wrapper(handler.ListJobs)).Methods("GET")
+	jobRouter.HandleFunc("/trigger", wrapper(handler.Trigger)).Methods("POST")
+	jobRouter.HandleFunc("/candidates", wrapper(handler.TopCandidates)).Methods("GET")
 
 	// START A SERVER
-	log.Fatal(http.ListenAndServe(os.Getenv("FRONTEND_ADDRESS"), router))
+	log.Fatal(http.ListenAndServe(os.Getenv("FRONTEND_ADDRESS"), jobRouter))
 }
 
 func HttpServer() {

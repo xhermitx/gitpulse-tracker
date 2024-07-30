@@ -20,8 +20,6 @@ func GetDriveDetails(folderID string) ([]string, error) {
 	ctx := context.Background()
 
 	// SERVICE ACCOUNT FILE
-	log.Println(os.Getenv("CREDENTIALS_JSON"))
-
 	data, err := os.ReadFile(os.Getenv("CREDENTIALS_JSON"))
 	if err != nil {
 		log.Println("Error reading Credentials")
@@ -55,9 +53,11 @@ func GetDriveDetails(folderID string) ([]string, error) {
 		return nil, err
 	}
 
-	var lock sync.Mutex
-	var wg sync.WaitGroup
-	var userIDs []string
+	var (
+		lock    sync.Mutex
+		wg      sync.WaitGroup
+		userIDs []string
+	)
 
 	wg.Add(len(fileList.Files))
 	for _, f := range fileList.Files {
