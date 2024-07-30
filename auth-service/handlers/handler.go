@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +16,13 @@ import (
 	"github.com/xhermitx/gitpulse-tracker/auth-service/store"
 )
 
+var (
+	ErrNotFound     = &models.APIError{StatusCode: http.StatusNotFound, Message: "Resource not found"}
+	ErrBadRequest   = &models.APIError{StatusCode: http.StatusBadRequest, Message: "Bad request"}
+	ErrUnauthorized = &models.APIError{StatusCode: http.StatusUnauthorized, Message: "Unauthorized"}
+	ErrInternal     = &models.APIError{StatusCode: http.StatusInternalServerError, Message: "Internal Server Error"}
+)
+
 type TaskHandler struct {
 	store store.Store
 }
@@ -23,56 +31,72 @@ func NewTaskHandler(s store.Store) *TaskHandler {
 	return &TaskHandler{store: s}
 }
 
-func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) {
+type Handler func(http.ResponseWriter, *http.Request) error
+
+func Wrapper(h Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := h(w, r)
+
+		handleError(w, err)
+	}
+}
+
+func handleError(w http.ResponseWriter, err error) {
+
+	var customErr *models.APIError
+
+	if !errors.As(err, customErr) {
+		customErr = models.NewAPIError(http.StatusInternalServerError, "Internal server error")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(customErr.StatusCode)
+	json.NewEncoder(w).Encode(customErr)
+}
+
+func (t *TaskHandler) Register(w http.ResponseWriter, r *http.Request) error {
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) // 400
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	var recruiter models.Recruiter
 	if err := json.Unmarshal(data, &recruiter); err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) // 400
 		log.Println("Error Unmarshalling the data")
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	if err = t.store.CreateRecruiter(&recruiter); err != nil {
-		http.Error(w, "Failed to create the recruiter", http.StatusInternalServerError) // 400
-		return
+		return ErrInternal
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 	w.WriteHeader(http.StatusCreated) // 201
-
 	fmt.Fprintf(w, "Signup Successful")
+	return nil
 }
 
-func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) error {
 
 	var credentials models.Credentials
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) //400
-		return
+		return ErrBadRequest
 	}
 	defer r.Body.Close()
 
 	if err := json.Unmarshal(data, &credentials); err != nil {
-		http.Error(w, "Error reading the request body", http.StatusBadRequest) //400
 		log.Println("Error Unmarshalling the data")
-		return
+		return ErrBadRequest
 	}
 
 	token, err := t.store.AuthenticateRecruiter(&credentials)
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized) //401
-		return
+		return ErrUnauthorized
 	}
 
 	cookie := http.Cookie{
@@ -84,19 +108,17 @@ func (t *TaskHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &cookie)
-
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK) // 200
-
 	fmt.Fprint(w, "Login Successful: ", token)
+	return nil
 }
 
-func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
+func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) error {
 
 	tokenString, err := getToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return ErrBadRequest
 	}
 
 	log.Println("TOKEN: ", tokenString)
@@ -112,42 +134,33 @@ func (t *TaskHandler) Validate(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Println("error while parsing the token: ", err)
-		http.Error(w, "invalid token: %s", http.StatusUnauthorized)
-		return
+		return ErrUnauthorized
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
-			log.Println("Token Expired")
-			http.Error(w, "token expired", http.StatusUnauthorized) //401
-			return
+			return ErrInternal
 		}
 
 		recruiter, err := t.store.FindRecruiter(uint(claims["id"].(float64)))
 		if err != nil {
 			log.Println("Invalid Token")
-			http.Error(w, "invalid token", http.StatusUnauthorized)
-			return
+			return ErrUnauthorized
 		}
 
 		payload, err := json.Marshal(recruiter)
 		if err != nil {
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-			return
+			return ErrInternal
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(payload)
+		return nil
 
-	} else {
-		log.Println("error Claiming the token")
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "invalid token")
 	}
-	log.Println("/auth/validate : debug2")
+	log.Println("Invalid Token")
+	return ErrUnauthorized
 }
 
 func getToken(r *http.Request) (string, error) {

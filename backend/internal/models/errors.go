@@ -1,9 +1,5 @@
 package models
 
-import (
-	"fmt"
-)
-
 type APIError struct {
 	StatusCode int    `json:"statusCode"`
 	Message    string `json:"message"`
@@ -11,7 +7,7 @@ type APIError struct {
 
 // IMPLEMENTS "error" INTERFACE
 func (a APIError) Error() string {
-	return fmt.Sprint(a.Message)
+	return a.Message
 }
 
 func NewAPIError(statusCode int, msg string) APIError {

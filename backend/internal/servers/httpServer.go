@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Handler func(w http.ResponseWriter, r *http.Request) error
+type Handler func(http.ResponseWriter, *http.Request) error
 
 func wrapper(h Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

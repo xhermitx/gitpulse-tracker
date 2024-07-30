@@ -55,9 +55,7 @@ func (h TaskHandler) CreateJob(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 	w.WriteHeader(http.StatusCreated) // 201
-
 	fmt.Fprintf(w, "Job ID: %d -> Created Successfully", Job.JobId)
 
 	return nil
@@ -80,9 +78,7 @@ func (h TaskHandler) DeleteJob(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 	w.WriteHeader(http.StatusOK)
-
 	fmt.Fprintf(w, "Job Deleted Successfully")
 
 	return nil
@@ -146,8 +142,6 @@ func (h TaskHandler) Trigger(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return ErrBadRequest
 	}
-
-	log.Println("FolderID: ", folderId)
 
 	usernames, err := gdrive.GetDriveDetails(folderId)
 	if err != nil {

@@ -13,22 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// DEFINE THE HOME PAGE
-func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "This is the home Page")
-	fmt.Println("Endpoint hit: homepage")
-}
-
 // HANDLE THE ROUTES
 func handleRequests(handler *handlers.TaskHandler) {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/", homePage)
-	router.HandleFunc("/auth/register", handler.Register).Methods("POST")
-	router.HandleFunc("/auth/login", handler.Login).Methods("POST")
-	router.HandleFunc("/auth/validate", handler.Validate).Methods("POST")
+	authRouter := router.PathPrefix("/auth").Subrouter()
 
-	log.Fatal(http.ListenAndServe(os.Getenv("AUTH_ADDRESS"), router))
+	authRouter.HandleFunc("/register", handlers.Wrapper(handler.Register)).Methods("POST")
+	authRouter.HandleFunc("/login", handlers.Wrapper(handler.Login)).Methods("POST")
+	authRouter.HandleFunc("/validate", handlers.Wrapper(handler.Validate)).Methods("POST")
+
+	log.Fatal(http.ListenAndServe(os.Getenv("AUTH_ADDRESS"), authRouter))
 }
 
 func main() {
